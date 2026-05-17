@@ -1,0 +1,348 @@
+/* ============================================
+   MyFit — стили
+   Мобильный фитнес-трекер калорий
+   ============================================ */
+
+/* Сброс и базовые настройки */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f0;
+  color: #2c2c2a;
+  min-height: 100vh;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Контейнер приложения — мобильная ширина */
+.app {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Шапка */
+.header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #ececec;
+}
+
+.date {
+  font-size: 12px;
+  color: #888780;
+  text-transform: capitalize;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Дашборд */
+.dashboard {
+  padding: 16px 18px;
+}
+
+.label {
+  font-size: 13px;
+  color: #5f5e5a;
+  margin-bottom: 8px;
+}
+
+.balance {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.balance-num {
+  font-size: 36px;
+  font-weight: 500;
+}
+
+.balance-unit {
+  font-size: 14px;
+  color: #888780;
+}
+
+/* Прогресс-бар */
+.progress {
+  background: #ececec;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.progress-bar {
+  background: #1d9e75;
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s, background 0.3s;
+}
+
+/* Карточки статистики */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.stat-eaten {
+  background: #e1f5ee;
+  color: #04342c;
+}
+
+.stat-eaten .stat-label,
+.stat-eaten .stat-unit {
+  color: #0f6e56;
+}
+
+.stat-burned {
+  background: #faece7;
+  color: #4a1b0c;
+}
+
+.stat-burned .stat-label,
+.stat-burned .stat-unit {
+  color: #993c1d;
+}
+
+.stat-label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.stat-unit {
+  font-size: 12px;
+}
+
+.goal-label {
+  font-size: 13px;
+  color: #5f5e5a;
+  margin-bottom: 4px;
+}
+
+.goal-status {
+  font-size: 12px;
+  color: #888780;
+}
+
+/* Блоки */
+.block {
+  padding: 14px 18px;
+  border-top: 1px solid #ececec;
+}
+
+.block-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+/* Поиск с подсказками */
+.search-wrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.suggest {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #d3d1c7;
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.suggest-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #ececec;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.suggest-item:last-child {
+  border-bottom: none;
+}
+
+.suggest-item:hover {
+  background: #f5f5f0;
+}
+
+.suggest-meta {
+  color: #888780;
+  font-size: 11px;
+}
+
+.suggest-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #888780;
+}
+
+/* Поля ввода и кнопки */
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid #d3d1c7;
+  border-radius: 6px;
+  background: #ffffff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  border-color: #1d9e75;
+}
+
+select {
+  flex: 2;
+  cursor: pointer;
+}
+
+#food-search {
+  width: 100%;
+}
+
+.calc {
+  flex: 1;
+  font-size: 13px;
+  color: #5f5e5a;
+  text-align: right;
+}
+
+.calc.active {
+  color: #0f6e56;
+  font-weight: 500;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #1d9e75;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover {
+  background: #0f6e56;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-reset {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  background: transparent;
+  color: #888780;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-reset:hover {
+  background: #f5f5f0;
+  color: #5f5e5a;
+}
+
+/* Списки добавленного */
+.list {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #ececec;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-name {
+  flex: 1;
+}
+
+.list-item-meta {
+  color: #888780;
+  font-size: 11px;
+}
+
+.list-item-kcal {
+  color: #5f5e5a;
+  margin-right: 4px;
+}
+
+.btn-remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  color: #a32d2d;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.btn-remove:hover {
+  color: #791f1f;
+}

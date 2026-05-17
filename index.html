@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1D9E75">
+  <title>MyFit — дневник калорий</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- Шапка -->
+    <header class="header">
+      <p class="date" id="today-date">Сегодня</p>
+      <h1 class="title">MyFit</h1>
+    </header>
+
+    <!-- Дашборд: баланс калорий -->
+    <section class="dashboard">
+      <p class="label">Баланс калорий</p>
+      <div class="balance">
+        <span class="balance-num" id="balance-num">0</span>
+        <span class="balance-unit">ккал</span>
+      </div>
+
+      <div class="progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat stat-eaten">
+          <p class="stat-label">🍽 Съедено</p>
+          <p class="stat-value"><span id="eaten-num">0</span> <span class="stat-unit">ккал</span></p>
+        </div>
+        <div class="stat stat-burned">
+          <p class="stat-label">🔥 Сожжено</p>
+          <p class="stat-value"><span id="burned-num">0</span> <span class="stat-unit">ккал</span></p>
+        </div>
+      </div>
+
+      <p class="goal-label">Цель: 2000 ккал/день</p>
+      <p class="goal-status" id="goal-status">Добавь продукт ниже ↓</p>
+    </section>
+
+    <!-- Блок: добавить еду -->
+    <section class="block">
+      <p class="block-title">🍎 Добавить продукт</p>
+
+      <div class="search-wrap">
+        <input id="food-search" type="text" placeholder="Начни вводить: яблоко, рис, курица..." autocomplete="off">
+        <div id="food-suggest" class="suggest"></div>
+      </div>
+
+      <div class="row">
+        <input id="food-grams" type="number" placeholder="вес, г" min="0">
+        <span id="food-calc" class="calc">= 0 ккал</span>
+      </div>
+
+      <button id="add-food-btn" class="btn-primary">Добавить</button>
+
+      <div id="food-list" class="list"></div>
+    </section>
+
+    <!-- Блок: добавить активность -->
+    <section class="block">
+      <p class="block-title">🏃 Добавить активность</p>
+
+      <div class="row">
+        <select id="act-type">
+          <option value="8">Бег (8 ккал/мин)</option>
+          <option value="4">Ходьба (4 ккал/мин)</option>
+          <option value="7">Велосипед (7 ккал/мин)</option>
+          <option value="6">Тренажёрный зал (6 ккал/мин)</option>
+          <option value="10">Плавание (10 ккал/мин)</option>
+        </select>
+        <input id="act-min" type="number" placeholder="мин" min="0">
+      </div>
+
+      <button id="add-act-btn" class="btn-primary">Добавить</button>
+
+      <div id="act-list" class="list"></div>
+    </section>
+
+    <!-- Сброс -->
+    <section class="block reset">
+      <button id="reset-btn" class="btn-reset">↻ Сбросить день</button>
+    </section>
+
+  </div>
+
+  <!-- Скрипты: сначала база данных, потом логика -->
+  <script src="products.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
