@@ -261,6 +261,12 @@
           <p class="form-title" id="meal-form-title">Новый приём пищи</p>
           <input id="meal-name" type="text" placeholder="Название (Завтрак, Обед, Перекус...)" autocomplete="off">
 
+          <div class="form-row" style="align-items: center;">
+            <label for="meal-time" style="font-size: 12px; color: #5f5e5a; flex: 0 0 auto;">⏰ Время:</label>
+            <input id="meal-time" type="time" style="flex: 0 0 110px;">
+            <button id="meal-time-clear" class="btn-secondary" style="flex: 0 0 auto; padding: 6px 10px; font-size: 11px; width: auto;" title="Без времени">✕</button>
+          </div>
+
           <p style="font-size: 12px; color: #5f5e5a; margin-top: 4px;">Продукты:</p>
           <div id="meal-items-list" class="meal-items"></div>
 
@@ -313,6 +319,38 @@
 
         <button id="settings-save" class="btn-primary">Сохранить цели</button>
         <p id="settings-status" class="settings-status"></p>
+      </section>
+
+      <section class="block">
+        <p class="block-title">🔔 Напоминания о приёмах пищи</p>
+
+        <div class="settings-row">
+          <label for="notif-enabled">Включены</label>
+          <label class="switch">
+            <input id="notif-enabled" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <label for="notif-offset">Напоминать за</label>
+          <select id="notif-offset" style="flex: 0 0 130px;">
+            <option value="0">в момент приёма</option>
+            <option value="5">5 минут до</option>
+            <option value="10">10 минут до</option>
+            <option value="15">15 минут до</option>
+            <option value="30">30 минут до</option>
+          </select>
+        </div>
+
+        <div id="notif-permission-info" class="notif-info">
+          Чтобы напоминания работали, нужно разрешение от браузера.
+        </div>
+
+        <button id="notif-request" class="btn-primary" style="margin-top: 8px;">🔔 Запросить разрешение</button>
+        <button id="notif-test" class="btn-secondary" style="margin-top: 8px;">🧪 Тестовое уведомление</button>
+
+        <p id="notif-status" class="settings-status"></p>
       </section>
 
       <section class="block">

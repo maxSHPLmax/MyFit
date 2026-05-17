@@ -1085,3 +1085,92 @@ body {
   color: #0f6e56;
   border: 1px solid #5dcaa5;
 }
+
+/* ============================================
+   НАПОМИНАНИЯ
+   ============================================ */
+
+/* Toggle-переключатель (как в iOS) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex: 0 0 44px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #d3d1c7;
+  border-radius: 24px;
+  transition: background 0.2s;
+}
+
+.switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.switch input:checked + .slider {
+  background: #1d9e75;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* Информационная подсказка */
+.notif-info {
+  font-size: 11px;
+  color: #5f5e5a;
+  background: #f5f5f0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+.notif-info.success {
+  background: #e1f5ee;
+  color: #04342c;
+}
+
+.notif-info.error {
+  background: #fcebeb;
+  color: #501313;
+}
+
+/* Время приёма в карточке */
+.plan-meal-time,
+.today-meal-time {
+  font-size: 11px;
+  color: #1d9e75;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+/* Пропущенный приём (время прошло, но не отмечен) */
+.today-meal.missed {
+  background: #faece7;
+  border-color: #F0997B;
+}
+
+.today-meal.missed .today-meal-name {
+  color: #993C1D;
+}

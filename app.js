@@ -10,6 +10,8 @@ const CUSTOM_PRODUCTS_KEY = 'myfit-products'; // свои продукты
 const CUSTOM_ACTS_KEY    = 'myfit-acts';      // свои активности
 const PLAN_KEY           = 'myfit-plan';      // план питания по дням недели
 const MEALS_DONE_KEY     = 'myfit-meals-done'; // отмеченные приёмы сегодня
+const NOTIF_SETTINGS_KEY = 'myfit-notif';      // настройки напоминаний
+const NOTIF_SHOWN_KEY    = 'myfit-notif-shown'; // какие уведомления уже показывали сегодня
 
 // --- Цели по умолчанию ---
 const DEFAULT_GOALS = {
@@ -45,6 +47,14 @@ let planSelectedDay = null;       // какой день недели сейча
 let editingMeal = null;           // редактируемый/создаваемый приём
 let mealProductSelected = null;   // выбранный продукт в форме приёма
 let copyFromDay = null;           // день, из которого копируем
+
+// Настройки напоминаний
+let notifSettings = {
+  enabled: false,
+  offsetMin: 0  // за сколько минут до приёма
+};
+// Какие приёмы уже получили уведомление сегодня (чтобы не дублировать)
+let notifShown = { date: '', shownMealIds: [] };
 
 // --- Хелпер ---
 const $ = (id) => document.getElementById(id);
@@ -469,12 +479,13 @@ function renderPlanScreen() {
     const itemsText = meal.items.length
       ? meal.items.map(it => `${escapeHtml(it.productName)} ${it.grams}г`).join(', ')
       : '<i>пусто</i>';
+    const timeHtml = meal.time ? `<span class="plan-meal-time">⏰ ${meal.time}</span>` : '';
 
     return `
       <div class="plan-meal">
         <div class="plan-meal-header">
           <div>
-            <div class="plan-meal-name">${escapeHtml(meal.name)}</div>
+            <div class="plan-meal-name">${timeHtml}${escapeHtml(meal.name)}</div>
             <div class="plan-meal-meta">${totals.kcal} ккал · Б ${totals.protein} · Ж ${totals.fat} · У ${totals.carbs}</div>
           </div>
           <div class="plan-meal-actions">
@@ -499,13 +510,14 @@ function renderPlanScreen() {
 // Открыть форму создания нового приёма
 function openMealForm(editIndex = null) {
   editingMeal = editIndex === null
-    ? { id: nextMealId++, name: '', items: [] }
+    ? { id: nextMealId++, name: '', items: [], time: '' }
     : JSON.parse(JSON.stringify(plan[planSelectedDay][editIndex]));
   // Запомним индекс для сохранения
   editingMeal._editIndex = editIndex;
 
   $('meal-form-title').textContent = editIndex === null ? 'Новый приём пищи' : 'Редактировать приём';
   $('meal-name').value = editingMeal.name;
+  $('meal-time').value = editingMeal.time || '';
   $('meal-product-search').value = '';
   $('meal-product-grams').value = '';
   mealProductSelected = null;
@@ -598,6 +610,7 @@ function saveMeal() {
   if (editingMeal.items.length === 0) { alert('Добавь хотя бы один продукт'); return; }
 
   editingMeal.name = name;
+  editingMeal.time = $('meal-time').value || '';  // опциональное поле
   const editIndex = editingMeal._editIndex;
   delete editingMeal._editIndex;
 
@@ -606,6 +619,14 @@ function saveMeal() {
   } else {
     plan[planSelectedDay][editIndex] = editingMeal;
   }
+
+  // Сортируем приёмы по времени (без времени — в конец)
+  plan[planSelectedDay].sort((a, b) => {
+    if (!a.time && !b.time) return 0;
+    if (!a.time) return 1;
+    if (!b.time) return -1;
+    return a.time.localeCompare(b.time);
+  });
 
   savePlan();
   closeMealForm();
@@ -672,16 +693,28 @@ function renderTodayPlan() {
 
   emptyEl.style.display = 'none';
 
+  // Текущее время в формате "HH:MM"
+  const now = new Date();
+  const currentTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
   listEl.innerHTML = meals.map(meal => {
     const totals = calcMealTotals(meal);
     const isDone = mealsDone.doneMealIds.includes(meal.id);
     const itemsText = meal.items.map(it => `${escapeHtml(it.productName)} ${it.grams}г`).join(', ');
+    const timeHtml = meal.time ? `<span class="today-meal-time">⏰ ${meal.time}</span>` : '';
+
+    // Приём считается «пропущенным», если время прошло, есть время, и не отмечен
+    const isMissed = meal.time && !isDone && meal.time < currentTime;
+
+    let cls = 'today-meal';
+    if (isDone) cls += ' done';
+    else if (isMissed) cls += ' missed';
 
     return `
-      <div class="today-meal ${isDone ? 'done' : ''}">
+      <div class="${cls}">
         <div class="today-meal-row">
           <div class="today-meal-info">
-            <div class="today-meal-name">${isDone ? '✓ ' : ''}${escapeHtml(meal.name)}</div>
+            <div class="today-meal-name">${timeHtml}${isDone ? '✓ ' : (isMissed ? '⚠️ ' : '')}${escapeHtml(meal.name)}</div>
             <div class="today-meal-meta">${totals.kcal} ккал · Б ${totals.protein} · Ж ${totals.fat} · У ${totals.carbs}</div>
           </div>
           <button class="btn-eat ${isDone ? 'done' : ''}" data-meal-id="${meal.id}">
@@ -769,6 +802,180 @@ function loadMealsDone() {
   } catch (e) {
     mealsDone = { date: new Date().toDateString(), doneMealIds: [] };
   }
+}
+
+// ============================================
+// НАПОМИНАНИЯ — Notifications API
+// ============================================
+
+function saveNotifSettings() {
+  localStorage.setItem(NOTIF_SETTINGS_KEY, JSON.stringify(notifSettings));
+}
+
+function loadNotifSettings() {
+  const raw = localStorage.getItem(NOTIF_SETTINGS_KEY);
+  if (!raw) return;
+  try { notifSettings = { ...notifSettings, ...JSON.parse(raw) }; }
+  catch (e) { console.error('Не удалось загрузить настройки напоминаний:', e); }
+}
+
+function saveNotifShown() {
+  localStorage.setItem(NOTIF_SHOWN_KEY, JSON.stringify(notifShown));
+}
+
+function loadNotifShown() {
+  const raw = localStorage.getItem(NOTIF_SHOWN_KEY);
+  if (!raw) { notifShown = { date: new Date().toDateString(), shownMealIds: [] }; return; }
+  try {
+    const data = JSON.parse(raw);
+    // Сбрасываем при новом дне
+    if (data.date !== new Date().toDateString()) {
+      notifShown = { date: new Date().toDateString(), shownMealIds: [] };
+      saveNotifShown();
+    } else {
+      notifShown = data;
+    }
+  } catch (e) {
+    notifShown = { date: new Date().toDateString(), shownMealIds: [] };
+  }
+}
+
+// Обновить UI с информацией о разрешении на уведомления
+function updateNotifPermissionInfo() {
+  const infoEl = $('notif-permission-info');
+  const reqBtn = $('notif-request');
+  const testBtn = $('notif-test');
+
+  if (!('Notification' in window)) {
+    infoEl.textContent = '⚠️ Браузер не поддерживает уведомления';
+    infoEl.className = 'notif-info error';
+    reqBtn.style.display = 'none';
+    testBtn.style.display = 'none';
+    return;
+  }
+
+  switch (Notification.permission) {
+    case 'granted':
+      infoEl.textContent = '✓ Уведомления разрешены';
+      infoEl.className = 'notif-info success';
+      reqBtn.style.display = 'none';
+      testBtn.style.display = 'block';
+      break;
+    case 'denied':
+      infoEl.innerHTML = '✕ Уведомления заблокированы. Чтобы включить — открой настройки сайта в браузере и разреши уведомления для этой страницы.';
+      infoEl.className = 'notif-info error';
+      reqBtn.style.display = 'none';
+      testBtn.style.display = 'none';
+      break;
+    default:
+      infoEl.textContent = 'Нажми кнопку, чтобы разрешить уведомления.';
+      infoEl.className = 'notif-info';
+      reqBtn.style.display = 'block';
+      testBtn.style.display = 'none';
+  }
+}
+
+// Запросить разрешение на уведомления
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    alert('Браузер не поддерживает уведомления');
+    return;
+  }
+  try {
+    const result = await Notification.requestPermission();
+    updateNotifPermissionInfo();
+    if (result === 'granted') {
+      // Сразу включаем
+      notifSettings.enabled = true;
+      $('notif-enabled').checked = true;
+      saveNotifSettings();
+    }
+  } catch (e) {
+    console.error('Ошибка запроса разрешения:', e);
+  }
+}
+
+// Показать уведомление
+function showMealNotification(meal) {
+  if (Notification.permission !== 'granted') return;
+
+  const itemsText = meal.items.map(it => `${it.productName} ${it.grams}г`).join(', ');
+  const title = `🍽 ${meal.name} — пора есть!`;
+
+  // Если установлен Service Worker, используем его (для надёжности на мобильных)
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, {
+        body: itemsText + (meal.time ? `\nЗапланировано на ${meal.time}` : ''),
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        tag: 'meal-' + meal.id,
+        requireInteraction: false,
+        data: { mealId: meal.id }
+      });
+    });
+  } else {
+    // Фоллбэк через обычные Notifications
+    new Notification(title, {
+      body: itemsText,
+      icon: 'icon-192.png'
+    });
+  }
+}
+
+// Проверка приёмов: пора ли показать уведомление?
+function checkNotifications() {
+  if (!notifSettings.enabled) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  // Обновляем notifShown, если новый день
+  if (notifShown.date !== new Date().toDateString()) {
+    notifShown = { date: new Date().toDateString(), shownMealIds: [] };
+    saveNotifShown();
+  }
+
+  const todayKey = getTodayKey();
+  const meals = plan[todayKey] || [];
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  for (const meal of meals) {
+    if (!meal.time) continue;                                  // нет времени
+    if (mealsDone.doneMealIds.includes(meal.id)) continue;     // уже съел
+    if (notifShown.shownMealIds.includes(meal.id)) continue;   // уже показывали
+
+    // Время приёма в минутах от полуночи
+    const [h, m] = meal.time.split(':').map(Number);
+    const mealMinutes = h * 60 + m;
+    const triggerMinutes = mealMinutes - notifSettings.offsetMin;
+
+    // Показываем, если текущее время >= момента триггера, но не позже чем через 5 минут после
+    if (nowMinutes >= triggerMinutes && nowMinutes <= triggerMinutes + 5) {
+      showMealNotification(meal);
+      notifShown.shownMealIds.push(meal.id);
+      saveNotifShown();
+    }
+  }
+}
+
+// Тестовое уведомление
+function showTestNotification() {
+  if (Notification.permission !== 'granted') {
+    alert('Сначала разреши уведомления');
+    return;
+  }
+  showMealNotification({
+    id: 'test',
+    name: 'Тестовое уведомление',
+    time: new Date().toTimeString().slice(0, 5),
+    items: [{ productName: 'Это тест', grams: 100 }]
+  });
+}
+
+// Загрузить настройки в форму
+function loadNotifSettingsIntoForm() {
+  $('notif-enabled').checked = notifSettings.enabled;
+  $('notif-offset').value = String(notifSettings.offsetMin);
 }
 
 // Своя активность
@@ -1274,6 +1481,35 @@ document.querySelectorAll('#copy-from-switch .weekday-btn').forEach(btn => {
   });
 });
 
+// Очистить поле времени в форме приёма
+$('meal-time-clear').addEventListener('click', () => {
+  $('meal-time').value = '';
+});
+
+// ============================================
+// СОБЫТИЯ НАПОМИНАНИЙ
+// ============================================
+$('notif-enabled').addEventListener('change', (e) => {
+  notifSettings.enabled = e.target.checked;
+  saveNotifSettings();
+
+  // Если включили, но разрешения нет — сразу запросим
+  if (notifSettings.enabled && 'Notification' in window && Notification.permission === 'default') {
+    requestNotificationPermission();
+  }
+});
+
+$('notif-offset').addEventListener('change', (e) => {
+  notifSettings.offsetMin = parseInt(e.target.value);
+  saveNotifSettings();
+  // Сбрасываем «уже показанные» — может, теперь триггер ещё не сработал
+  notifShown.shownMealIds = [];
+  saveNotifShown();
+});
+
+$('notif-request').addEventListener('click', requestNotificationPermission);
+$('notif-test').addEventListener('click', showTestNotification);
+
 // ============================================
 // 15. СТАРТ
 // ============================================
@@ -1284,9 +1520,26 @@ loadCustomActs();
 loadHistory();
 loadPlan();
 loadMealsDone();
+loadNotifSettings();
+loadNotifShown();
 load();
 
 refillActivitySelect();
 loadGoalsIntoForm();
+loadNotifSettingsIntoForm();
+updateNotifPermissionInfo();
 renderMyProducts();
 render();
+
+// Запускаем проверку напоминаний каждую минуту
+// (плюс одна сразу при старте — на случай пропущенных)
+checkNotifications();
+setInterval(checkNotifications, 60 * 1000);
+
+// Также обновляем «пропущенные» приёмы (подсветка) каждую минуту
+setInterval(() => {
+  // Только если открыт Дневник
+  if (document.getElementById('screen-diary').classList.contains('active')) {
+    renderTodayPlan();
+  }
+}, 60 * 1000);

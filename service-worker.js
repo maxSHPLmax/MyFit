@@ -4,7 +4,7 @@
 // Каждый раз, когда меняешь файлы — увеличивай VERSION,
 // чтобы пользователи получили свежую версию.
 
-const VERSION = 'myfit-v6';
+const VERSION = 'myfit-v7';
 
 // Какие файлы кешировать при первой установке
 const FILES_TO_CACHE = [
@@ -88,5 +88,28 @@ self.addEventListener('fetch', (event) => {
         return caches.match('./index.html');
       }
     })
+  );
+});
+
+// ============================================
+// 4. КЛИК ПО УВЕДОМЛЕНИЮ — открыть приложение
+// ============================================
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        // Если приложение уже открыто — фокусируемся на нём
+        for (const client of clients) {
+          if ('focus' in client) {
+            return client.focus();
+          }
+        }
+        // Иначе открываем новое окно
+        if (self.clients.openWindow) {
+          return self.clients.openWindow('./');
+        }
+      })
   );
 });
