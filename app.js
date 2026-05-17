@@ -2,27 +2,49 @@
 // MyFit — основная логика приложения
 // ============================================
 
-// --- Настройки ---
-const DAILY_GOAL = 2000;          // дневная цель в ккал
-const STORAGE_KEY = 'myfit-data'; // текущий день
-const HISTORY_KEY = 'myfit-history'; // архив закрытых дней
+// --- Ключи в LocalStorage ---
+const STORAGE_KEY        = 'myfit-data';      // текущий день
+const HISTORY_KEY        = 'myfit-history';   // архив дней
+const GOALS_KEY          = 'myfit-goals';     // цели
+const CUSTOM_PRODUCTS_KEY = 'myfit-products'; // свои продукты
+const CUSTOM_ACTS_KEY    = 'myfit-acts';      // свои активности
 
-// --- Состояние приложения ---
-let foods = [];           // продукты текущего дня
-let activities = [];      // активности текущего дня
-let history = [];         // массив закрытых дней
+// --- Цели по умолчанию ---
+const DEFAULT_GOALS = {
+  kcal: 2000,
+  protein: 100,
+  fat: 70,
+  carbs: 250
+};
+
+// --- Состояние ---
+let foods = [];
+let activities = [];
+let history = [];
+let goals = { ...DEFAULT_GOALS };
+let customProducts = [];   // свои продукты
+let customActs = [];       // свои активности
 let selectedProduct = null;
-let chartPeriod = 7;      // 7 или 30 — сколько дней показывать
+let chartPeriod = 7;
 
-// --- Ссылки на элементы ---
+// --- Хелпер ---
 const $ = (id) => document.getElementById(id);
 
+// --- Ссылки на элементы ---
 const dateEl       = $('today-date');
 const balanceNumEl = $('balance-num');
 const eatenNumEl   = $('eaten-num');
 const burnedNumEl  = $('burned-num');
 const progressBar  = $('progress-bar');
 const goalStatus   = $('goal-status');
+const goalKcalEl   = $('goal-kcal');
+
+const macroPEl       = $('macro-p');
+const macroFEl       = $('macro-f');
+const macroCEl       = $('macro-c');
+const macroPTargetEl = $('macro-p-target');
+const macroFTargetEl = $('macro-f-target');
+const macroCTargetEl = $('macro-c-target');
 
 const foodSearch   = $('food-search');
 const foodSuggest  = $('food-suggest');
@@ -30,11 +52,15 @@ const foodGrams    = $('food-grams');
 const foodCalc     = $('food-calc');
 const foodListEl   = $('food-list');
 const addFoodBtn   = $('add-food-btn');
+const newProductBtn = $('new-product-btn');
+const newProductForm = $('new-product-form');
 
 const actType      = $('act-type');
 const actMin       = $('act-min');
 const actListEl    = $('act-list');
 const addActBtn    = $('add-act-btn');
+const newActivityBtn = $('new-activity-btn');
+const newActivityForm = $('new-activity-form');
 
 const closeDayBtn  = $('close-day-btn');
 const resetBtn     = $('reset-btn');
@@ -42,20 +68,43 @@ const resetBtn     = $('reset-btn');
 const historyChart = $('history-chart');
 const historyEmpty = $('history-empty');
 
+const setKcal     = $('set-kcal');
+const setProtein  = $('set-protein');
+const setFat      = $('set-fat');
+const setCarbs    = $('set-carbs');
+const settingsSaveBtn = $('settings-save');
+const settingsStatus  = $('settings-status');
+
 // ============================================
 // 1. ДАТА
 // ============================================
 function showTodayDate() {
   const today = new Date();
   dateEl.textContent = today.toLocaleDateString('ru-RU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
+    weekday: 'long', day: 'numeric', month: 'long'
   });
 }
 
 // ============================================
-// 2. ПОИСК ПРОДУКТОВ
+// 2. ОБЪЕДИНЁННЫЙ СПИСОК ПРОДУКТОВ
+// ============================================
+// Стандартные + свои; свои помечены custom: true
+function getAllProducts() {
+  return [
+    ...customProducts.map(p => ({ ...p, custom: true })),
+    ...PRODUCTS
+  ];
+}
+
+function getAllActivities() {
+  return [
+    ...customActs.map(a => ({ ...a, custom: true })),
+    ...ACTIVITIES
+  ];
+}
+
+// ============================================
+// 3. ПОИСК ПРОДУКТОВ
 // ============================================
 function showSuggestions(query) {
   const q = query.trim().toLowerCase();
@@ -65,7 +114,7 @@ function showSuggestions(query) {
     return;
   }
 
-  const matches = PRODUCTS
+  const matches = getAllProducts()
     .filter(p => p.name.toLowerCase().includes(q))
     .slice(0, 6);
 
@@ -77,7 +126,7 @@ function showSuggestions(query) {
 
   foodSuggest.innerHTML = matches.map(p => `
     <div class="suggest-item" data-name="${escapeHtml(p.name)}">
-      <span>${escapeHtml(p.name)}</span>
+      <span>${p.custom ? '<span class="custom-mark">★</span>' : ''}${escapeHtml(p.name)}</span>
       <span class="suggest-meta">${p.kcal100} ккал/100г</span>
     </div>
   `).join('');
@@ -87,7 +136,7 @@ function showSuggestions(query) {
   foodSuggest.querySelectorAll('.suggest-item').forEach(item => {
     item.onclick = () => {
       const name = item.dataset.name;
-      selectedProduct = PRODUCTS.find(p => p.name === name);
+      selectedProduct = getAllProducts().find(p => p.name === name);
       foodSearch.value = name;
       foodSuggest.style.display = 'none';
       updateCalcPreview();
@@ -97,7 +146,7 @@ function showSuggestions(query) {
 }
 
 // ============================================
-// 3. ПРЕДВАРИТЕЛЬНЫЙ ПОДСЧЁТ КАЛОРИЙ
+// 4. ПРЕДВАРИТЕЛЬНЫЙ ПОДСЧЁТ
 // ============================================
 function updateCalcPreview() {
   const grams = parseFloat(foodGrams.value);
@@ -112,7 +161,7 @@ function updateCalcPreview() {
 }
 
 // ============================================
-// 4. ДОБАВЛЕНИЕ ПРОДУКТА
+// 5. ДОБАВИТЬ ПРОДУКТ
 // ============================================
 function addFood() {
   const grams = parseFloat(foodGrams.value);
@@ -126,28 +175,39 @@ function addFood() {
     return;
   }
 
-  const kcal = (selectedProduct.kcal100 * grams) / 100;
-
+  // Считаем порцию (масштабируем со 100 г)
+  const k = grams / 100;
   foods.push({
     name: selectedProduct.name,
     grams: grams,
-    kcal: kcal
+    kcal:    selectedProduct.kcal100 * k,
+    protein: (selectedProduct.protein || 0) * k,
+    fat:     (selectedProduct.fat     || 0) * k,
+    carbs:   (selectedProduct.carbs   || 0) * k
   });
 
   foodSearch.value = '';
   foodGrams.value = '';
   selectedProduct = null;
   updateCalcPreview();
-
   render();
 }
 
 // ============================================
-// 5. ДОБАВЛЕНИЕ АКТИВНОСТИ
+// 6. ДОБАВИТЬ АКТИВНОСТЬ
 // ============================================
+function refillActivitySelect() {
+  // Очищаем и заполняем заново всеми активностями
+  actType.innerHTML = getAllActivities().map(a => {
+    const mark = a.custom ? '★ ' : '';
+    return `<option value="${a.rate}" data-name="${escapeHtml(a.name)}">${mark}${escapeHtml(a.name)} (${a.rate} ккал/мин)</option>`;
+  }).join('');
+}
+
 function addActivity() {
-  const rate = parseFloat(actType.value);
-  const name = actType.options[actType.selectedIndex].text.split(' (')[0];
+  const opt  = actType.options[actType.selectedIndex];
+  const rate = parseFloat(opt.value);
+  const name = opt.dataset.name;
   const min  = parseFloat(actMin.value);
 
   if (!min || min <= 0) {
@@ -155,42 +215,135 @@ function addActivity() {
     return;
   }
 
-  activities.push({
-    name: name,
-    min: min,
-    kcal: rate * min
-  });
-
+  activities.push({ name, min, kcal: rate * min });
   actMin.value = '';
   render();
 }
 
 // ============================================
-// 6. ОТРИСОВКА
+// 7. ФОРМЫ — свой продукт / своя активность
+// ============================================
+
+// Свой продукт
+function openProductForm() {
+  newProductForm.classList.remove('hidden');
+  $('np-name').focus();
+}
+
+function closeProductForm() {
+  newProductForm.classList.add('hidden');
+  ['np-name', 'np-kcal', 'np-protein', 'np-fat', 'np-carbs'].forEach(id => $(id).value = '');
+}
+
+function saveNewProduct() {
+  const name    = $('np-name').value.trim();
+  const kcal100 = parseFloat($('np-kcal').value);
+  const protein = parseFloat($('np-protein').value) || 0;
+  const fat     = parseFloat($('np-fat').value)     || 0;
+  const carbs   = parseFloat($('np-carbs').value)   || 0;
+
+  if (!name) {
+    alert('Укажи название');
+    return;
+  }
+  if (!kcal100 || kcal100 < 0) {
+    alert('Укажи калорийность');
+    return;
+  }
+
+  // Проверка дубликата (без учёта регистра)
+  const exists = getAllProducts().some(p => p.name.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    alert('Продукт с таким названием уже есть');
+    return;
+  }
+
+  customProducts.push({ name, kcal100, protein, fat, carbs });
+  saveCustomProducts();
+  closeProductForm();
+  alert('Продукт добавлен в твою базу');
+}
+
+// Своя активность
+function openActivityForm() {
+  newActivityForm.classList.remove('hidden');
+  $('na-name').focus();
+}
+
+function closeActivityForm() {
+  newActivityForm.classList.add('hidden');
+  $('na-name').value = '';
+  $('na-rate').value = '';
+}
+
+function saveNewActivity() {
+  const name = $('na-name').value.trim();
+  const rate = parseFloat($('na-rate').value);
+
+  if (!name) {
+    alert('Укажи название');
+    return;
+  }
+  if (!rate || rate <= 0) {
+    alert('Укажи расход калорий в минуту');
+    return;
+  }
+
+  const exists = getAllActivities().some(a => a.name.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    alert('Активность с таким названием уже есть');
+    return;
+  }
+
+  customActs.push({ name, rate });
+  saveCustomActs();
+  refillActivitySelect();
+  closeActivityForm();
+  alert('Активность добавлена');
+}
+
+// ============================================
+// 8. ОТРИСОВКА
 // ============================================
 function render() {
   save();
 
-  const eaten   = foods.reduce((sum, f) => sum + f.kcal, 0);
-  const burned  = activities.reduce((sum, a) => sum + a.kcal, 0);
+  // Суммы по еде
+  const eaten   = foods.reduce((s, f) => s + f.kcal, 0);
+  const protein = foods.reduce((s, f) => s + (f.protein || 0), 0);
+  const fat     = foods.reduce((s, f) => s + (f.fat     || 0), 0);
+  const carbs   = foods.reduce((s, f) => s + (f.carbs   || 0), 0);
+  const burned  = activities.reduce((s, a) => s + a.kcal, 0);
   const balance = eaten - burned;
 
+  // Числа
   eatenNumEl.textContent   = Math.round(eaten);
   burnedNumEl.textContent  = Math.round(burned);
   balanceNumEl.textContent = Math.round(balance);
 
-  const percent = Math.min(100, Math.max(0, (balance / DAILY_GOAL) * 100));
+  macroPEl.textContent = Math.round(protein);
+  macroFEl.textContent = Math.round(fat);
+  macroCEl.textContent = Math.round(carbs);
+
+  // Цели в дашборде
+  goalKcalEl.textContent     = goals.kcal;
+  macroPTargetEl.textContent = goals.protein;
+  macroFTargetEl.textContent = goals.fat;
+  macroCTargetEl.textContent = goals.carbs;
+
+  // Прогресс-бар по ккал
+  const percent = Math.min(100, Math.max(0, (balance / goals.kcal) * 100));
   progressBar.style.width = percent + '%';
 
-  if (balance > DAILY_GOAL) {
+  if (balance > goals.kcal) {
     progressBar.style.background = '#e24b4a';
-  } else if (balance > DAILY_GOAL * 0.8) {
+  } else if (balance > goals.kcal * 0.8) {
     progressBar.style.background = '#ef9f27';
   } else {
     progressBar.style.background = '#1d9e75';
   }
 
-  const remaining = DAILY_GOAL - balance;
+  const remaining = goals.kcal - balance;
   if (foods.length === 0 && activities.length === 0) {
     goalStatus.textContent = 'Добавь продукт ниже ↓';
   } else if (remaining > 0) {
@@ -217,12 +370,8 @@ function renderFoodList() {
       </span>
     </div>
   `).join('');
-
   foodListEl.querySelectorAll('.btn-remove').forEach(btn => {
-    btn.onclick = () => {
-      foods.splice(parseInt(btn.dataset.i), 1);
-      render();
-    };
+    btn.onclick = () => { foods.splice(parseInt(btn.dataset.i), 1); render(); };
   });
 }
 
@@ -238,40 +387,31 @@ function renderActivityList() {
       </span>
     </div>
   `).join('');
-
   actListEl.querySelectorAll('.btn-remove').forEach(btn => {
-    btn.onclick = () => {
-      activities.splice(parseInt(btn.dataset.i), 1);
-      render();
-    };
+    btn.onclick = () => { activities.splice(parseInt(btn.dataset.i), 1); render(); };
   });
 }
 
 // ============================================
-// 7. ЗАКРЫТИЕ ДНЯ
+// 9. ЗАКРЫТИЕ ДНЯ
 // ============================================
-
 function updateCloseDayBtn() {
-  const hasData = foods.length > 0 || activities.length > 0;
-  closeDayBtn.disabled = !hasData;
+  closeDayBtn.disabled = !(foods.length > 0 || activities.length > 0);
 }
 
 function closeDay() {
   if (foods.length === 0 && activities.length === 0) return;
-
   if (!confirm('Закрыть день? Текущие записи попадут в историю.')) return;
 
-  const eaten   = foods.reduce((sum, f) => sum + f.kcal, 0);
-  const burned  = activities.reduce((sum, a) => sum + a.kcal, 0);
+  const eaten   = foods.reduce((s, f) => s + f.kcal, 0);
+  const burned  = activities.reduce((s, a) => s + a.kcal, 0);
   const balance = eaten - burned;
 
-  // ISO-дата YYYY-MM-DD — удобна для сортировки
   const today = new Date();
   const isoDate = today.getFullYear() + '-' +
                   String(today.getMonth() + 1).padStart(2, '0') + '-' +
                   String(today.getDate()).padStart(2, '0');
 
-  // Если запись за сегодня уже есть — заменяем
   history = history.filter(h => h.date !== isoDate);
   history.push({
     date: isoDate,
@@ -279,20 +419,16 @@ function closeDay() {
     burned: Math.round(burned),
     balance: Math.round(balance)
   });
-
-  // Сортируем по дате (старые → новые)
   history.sort((a, b) => a.date.localeCompare(b.date));
 
-  // Чистим текущий день
   foods = [];
   activities = [];
-
   saveHistory();
   render();
 }
 
 // ============================================
-// 8. ИСТОРИЯ — отрисовка графика
+// 10. ИСТОРИЯ — график
 // ============================================
 function renderHistory() {
   if (history.length === 0) {
@@ -304,22 +440,18 @@ function renderHistory() {
   historyChart.classList.remove('hidden');
   historyEmpty.classList.remove('show');
 
-  // Берём последние N дней из истории
   const days = history.slice(-chartPeriod);
-
-  // Максимум для масштабирования (не меньше дневной цели)
-  const maxValue = Math.max(DAILY_GOAL, ...days.map(d => d.balance));
+  const maxValue = Math.max(goals.kcal, ...days.map(d => d.balance));
 
   historyChart.innerHTML = days.map(d => {
     const value = Math.max(0, d.balance);
     const heightPct = (value / maxValue) * 100;
 
     let cls = 'chart-bar-fill';
-    if (d.balance > DAILY_GOAL) cls += ' over';
-    else if (d.balance > DAILY_GOAL * 0.8) cls += ' near';
+    if (d.balance > goals.kcal) cls += ' over';
+    else if (d.balance > goals.kcal * 0.8) cls += ' near';
     else if (d.balance <= 0) cls += ' empty';
 
-    // Короткая подпись даты — день.месяц
     const dateObj = new Date(d.date);
     const label = dateObj.getDate() + '.' + String(dateObj.getMonth() + 1).padStart(2, '0');
 
@@ -334,78 +466,116 @@ function renderHistory() {
 }
 
 // ============================================
-// 9. СОХРАНЕНИЕ И ЗАГРУЗКА
+// 11. НАСТРОЙКИ — цели
 // ============================================
+function loadGoalsIntoForm() {
+  setKcal.value    = goals.kcal;
+  setProtein.value = goals.protein;
+  setFat.value     = goals.fat;
+  setCarbs.value   = goals.carbs;
+}
 
+function saveSettings() {
+  const kcal    = parseFloat(setKcal.value);
+  const protein = parseFloat(setProtein.value);
+  const fat     = parseFloat(setFat.value);
+  const carbs   = parseFloat(setCarbs.value);
+
+  if (!kcal || kcal <= 0 || !protein || protein < 0 || !fat || fat < 0 || !carbs || carbs < 0) {
+    alert('Все поля должны быть положительными числами');
+    return;
+  }
+
+  goals = { kcal, protein, fat, carbs };
+  saveGoals();
+  render();
+
+  settingsStatus.textContent = '✓ Цели сохранены';
+  settingsStatus.classList.add('show');
+  setTimeout(() => settingsStatus.classList.remove('show'), 2000);
+}
+
+// ============================================
+// 12. СОХРАНЕНИЕ И ЗАГРУЗКА
+// ============================================
 function save() {
-  const data = {
-    date: new Date().toDateString(),
-    foods: foods,
-    activities: activities
-  };
+  const data = { date: new Date().toDateString(), foods, activities };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 function load() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
-
   try {
     const data = JSON.parse(raw);
-
     if (data.date !== new Date().toDateString()) {
       localStorage.removeItem(STORAGE_KEY);
       return;
     }
-
     foods = data.foods || [];
     activities = data.activities || [];
-  } catch (e) {
-    console.error('Не удалось загрузить текущий день:', e);
-  }
+  } catch (e) { console.error('Не удалось загрузить день:', e); }
 }
 
-function saveHistory() {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-}
+function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
 
 function loadHistory() {
   const raw = localStorage.getItem(HISTORY_KEY);
   if (!raw) return;
+  try { history = JSON.parse(raw) || []; }
+  catch (e) { history = []; console.error('Не удалось загрузить историю:', e); }
+}
+
+function saveGoals() { localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }
+
+function loadGoals() {
+  const raw = localStorage.getItem(GOALS_KEY);
+  if (!raw) return;
   try {
-    history = JSON.parse(raw) || [];
-  } catch (e) {
-    console.error('Не удалось загрузить историю:', e);
-    history = [];
-  }
+    const data = JSON.parse(raw);
+    goals = { ...DEFAULT_GOALS, ...data };
+  } catch (e) { console.error('Не удалось загрузить цели:', e); }
+}
+
+function saveCustomProducts() { localStorage.setItem(CUSTOM_PRODUCTS_KEY, JSON.stringify(customProducts)); }
+
+function loadCustomProducts() {
+  const raw = localStorage.getItem(CUSTOM_PRODUCTS_KEY);
+  if (!raw) return;
+  try { customProducts = JSON.parse(raw) || []; }
+  catch (e) { customProducts = []; }
+}
+
+function saveCustomActs() { localStorage.setItem(CUSTOM_ACTS_KEY, JSON.stringify(customActs)); }
+
+function loadCustomActs() {
+  const raw = localStorage.getItem(CUSTOM_ACTS_KEY);
+  if (!raw) return;
+  try { customActs = JSON.parse(raw) || []; }
+  catch (e) { customActs = []; }
 }
 
 // ============================================
-// 10. УТИЛИТА
+// 13. УТИЛИТА
 // ============================================
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }
 
 // ============================================
-// 11. ПРИВЯЗКА СОБЫТИЙ
+// 14. СОБЫТИЯ
 // ============================================
 foodSearch.addEventListener('input', (e) => {
   selectedProduct = null;
   updateCalcPreview();
   showSuggestions(e.target.value);
 });
-
-foodSearch.addEventListener('focus', (e) => {
-  showSuggestions(e.target.value);
-});
-
+foodSearch.addEventListener('focus', (e) => showSuggestions(e.target.value));
 foodSearch.addEventListener('blur', () => {
   setTimeout(() => foodSuggest.style.display = 'none', 200);
 });
-
 foodGrams.addEventListener('input', updateCalcPreview);
 
 addFoodBtn.addEventListener('click', addFood);
@@ -420,7 +590,19 @@ resetBtn.addEventListener('click', () => {
   }
 });
 
-// Переключатель Неделя / Месяц
+// Формы «своих»
+newProductBtn.addEventListener('click', openProductForm);
+$('np-cancel').addEventListener('click', closeProductForm);
+$('np-save').addEventListener('click', saveNewProduct);
+
+newActivityBtn.addEventListener('click', openActivityForm);
+$('na-cancel').addEventListener('click', closeActivityForm);
+$('na-save').addEventListener('click', saveNewActivity);
+
+// Настройки
+settingsSaveBtn.addEventListener('click', saveSettings);
+
+// Период истории
 document.querySelectorAll('.period-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -431,9 +613,15 @@ document.querySelectorAll('.period-btn').forEach(btn => {
 });
 
 // ============================================
-// 12. СТАРТ
+// 15. СТАРТ
 // ============================================
 showTodayDate();
-load();
+loadGoals();
+loadCustomProducts();
+loadCustomActs();
 loadHistory();
+load();
+
+refillActivitySelect();
+loadGoalsIntoForm();
 render();

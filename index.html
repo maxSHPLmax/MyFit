@@ -17,7 +17,7 @@
       <h1 class="title">MyFit</h1>
     </header>
 
-    <!-- Дашборд: баланс калорий -->
+    <!-- Дашборд -->
     <section class="dashboard">
       <p class="label">Баланс калорий</p>
       <div class="balance">
@@ -40,13 +40,53 @@
         </div>
       </div>
 
-      <p class="goal-label">Цель: 2000 ккал/день</p>
+      <!-- БЖУ -->
+      <div class="macros">
+        <div class="macro macro-p">
+          <p class="macro-label">Белки</p>
+          <p class="macro-value"><span id="macro-p">0</span><span class="macro-unit">г</span></p>
+          <p class="macro-target">из <span id="macro-p-target">100</span></p>
+        </div>
+        <div class="macro macro-f">
+          <p class="macro-label">Жиры</p>
+          <p class="macro-value"><span id="macro-f">0</span><span class="macro-unit">г</span></p>
+          <p class="macro-target">из <span id="macro-f-target">70</span></p>
+        </div>
+        <div class="macro macro-c">
+          <p class="macro-label">Углеводы</p>
+          <p class="macro-value"><span id="macro-c">0</span><span class="macro-unit">г</span></p>
+          <p class="macro-target">из <span id="macro-c-target">250</span></p>
+        </div>
+      </div>
+
+      <p class="goal-label">Цель: <span id="goal-kcal">2000</span> ккал/день</p>
       <p class="goal-status" id="goal-status">Добавь продукт ниже ↓</p>
     </section>
 
-    <!-- Блок: добавить еду -->
+    <!-- Добавить еду -->
     <section class="block">
-      <p class="block-title">🍎 Добавить продукт</p>
+      <div class="block-header">
+        <p class="block-title">🍎 Добавить продукт</p>
+        <button id="new-product-btn" class="btn-add">+ Новый продукт</button>
+      </div>
+
+      <!-- Форма «новый продукт» -->
+      <div id="new-product-form" class="custom-form hidden">
+        <p class="form-title">Новый продукт</p>
+        <input id="np-name" type="text" placeholder="Название" autocomplete="off">
+        <div class="form-row">
+          <input id="np-kcal" type="number" placeholder="ккал/100г" min="0">
+          <input id="np-protein" type="number" placeholder="Б, г" min="0" step="0.1">
+        </div>
+        <div class="form-row">
+          <input id="np-fat" type="number" placeholder="Ж, г" min="0" step="0.1">
+          <input id="np-carbs" type="number" placeholder="У, г" min="0" step="0.1">
+        </div>
+        <div class="form-actions">
+          <button id="np-cancel" class="btn-secondary">Отмена</button>
+          <button id="np-save" class="btn-primary">Сохранить</button>
+        </div>
+      </div>
 
       <div class="search-wrap">
         <input id="food-search" type="text" placeholder="Начни вводить: яблоко, рис, курица..." autocomplete="off">
@@ -63,18 +103,26 @@
       <div id="food-list" class="list"></div>
     </section>
 
-    <!-- Блок: добавить активность -->
+    <!-- Добавить активность -->
     <section class="block">
-      <p class="block-title">🏃 Добавить активность</p>
+      <div class="block-header">
+        <p class="block-title">🏃 Добавить активность</p>
+        <button id="new-activity-btn" class="btn-add">+ Новая активность</button>
+      </div>
+
+      <!-- Форма «новая активность» -->
+      <div id="new-activity-form" class="custom-form hidden">
+        <p class="form-title">Новая активность</p>
+        <input id="na-name" type="text" placeholder="Например: йога" autocomplete="off">
+        <input id="na-rate" type="number" placeholder="ккал в минуту" min="0" step="0.1">
+        <div class="form-actions">
+          <button id="na-cancel" class="btn-secondary">Отмена</button>
+          <button id="na-save" class="btn-primary">Сохранить</button>
+        </div>
+      </div>
 
       <div class="row">
-        <select id="act-type">
-          <option value="8">Бег (8 ккал/мин)</option>
-          <option value="4">Ходьба (4 ккал/мин)</option>
-          <option value="7">Велосипед (7 ккал/мин)</option>
-          <option value="6">Тренажёрный зал (6 ккал/мин)</option>
-          <option value="10">Плавание (10 ккал/мин)</option>
-        </select>
+        <select id="act-type"></select>
         <input id="act-min" type="number" placeholder="мин" min="0">
       </div>
 
@@ -83,7 +131,7 @@
       <div id="act-list" class="list"></div>
     </section>
 
-    <!-- Закрытие дня + сброс -->
+    <!-- Закрытие и сброс -->
     <section class="block actions">
       <button id="close-day-btn" class="btn-close-day" disabled>✓ Закрыть день</button>
       <button id="reset-btn" class="btn-reset">↻ Сбросить день</button>
@@ -103,9 +151,37 @@
       <p id="history-empty" class="history-empty">Здесь появятся закрытые дни</p>
     </section>
 
+    <!-- Настройки -->
+    <section class="block settings">
+      <p class="block-title">⚙️ Настройки — дневные цели</p>
+
+      <div class="settings-row">
+        <label for="set-kcal">Калории</label>
+        <input id="set-kcal" type="number" min="0">
+        <span class="unit-label">ккал</span>
+      </div>
+      <div class="settings-row">
+        <label for="set-protein">Белки</label>
+        <input id="set-protein" type="number" min="0">
+        <span class="unit-label">г</span>
+      </div>
+      <div class="settings-row">
+        <label for="set-fat">Жиры</label>
+        <input id="set-fat" type="number" min="0">
+        <span class="unit-label">г</span>
+      </div>
+      <div class="settings-row">
+        <label for="set-carbs">Углеводы</label>
+        <input id="set-carbs" type="number" min="0">
+        <span class="unit-label">г</span>
+      </div>
+
+      <button id="settings-save" class="btn-primary">Сохранить цели</button>
+      <p id="settings-status" class="settings-status"></p>
+    </section>
+
   </div>
 
-  <!-- Скрипты -->
   <script src="products.js"></script>
   <script src="app.js"></script>
 
