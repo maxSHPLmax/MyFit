@@ -3,8 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1D9E75">
+  <meta name="theme-color" content="#1a1a1a">
   <title>MyFit — дневник калорий</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <!-- iOS-специфичные мета (для красивой установки на iPhone) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyFit">
+  <meta name="mobile-web-app-capable" content="yes">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -184,6 +196,17 @@
 
   <script src="products.js"></script>
   <script src="app.js"></script>
+
+  <!-- Регистрация Service Worker для PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then((reg) => console.log('Service Worker зарегистрирован:', reg.scope))
+          .catch((err) => console.warn('Service Worker не зарегистрирован:', err));
+      });
+    }
+  </script>
 
 </body>
 </html>
