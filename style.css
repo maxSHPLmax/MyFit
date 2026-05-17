@@ -2,6 +2,136 @@
    MyFit — стили
    ============================================ */
 
+/* ============================================
+   ЦВЕТОВАЯ СХЕМА (CSS-переменные)
+   Светлая тема — :root
+   Тёмная тема — [data-theme="dark"]
+   Эффективная тема (light/dark) проставляется на <html> JS-ом
+   ============================================ */
+
+:root {
+  /* Фоны */
+  --bg-page: #f5f5f0;
+  --bg-app: #ffffff;
+  --bg-card: #ffffff;
+  --bg-soft: #f5f5f0;
+  --bg-track: #ececec;
+
+  /* Текст */
+  --text-primary: #2c2c2a;
+  --text-secondary: #5f5e5a;
+  --text-muted: #888780;
+  --text-on-accent: #ffffff;
+
+  /* Границы */
+  --border-light: #ececec;
+  --border-medium: #d3d1c7;
+
+  /* Акцент (зелёный — бренд) */
+  --accent: #1d9e75;
+  --accent-strong: #0f6e56;
+  --accent-darker: #04342c;
+  --accent-soft-bg: #e1f5ee;
+  --accent-light: #5dcaa5;
+
+  /* Активная вкладка / контрастный бренд */
+  --nav-active: #1a1a1a;
+  --nav-active-text: #ffffff;
+
+  /* Статус — warning / orange */
+  --warning: #ef9f27;
+  --warning-strong: #993c1d;
+  --warning-soft-bg: #faece7;
+  --warning-darker: #4a1b0c;
+  --warning-border: #F0997B;
+
+  /* Статус — danger / red */
+  --danger: #a32d2d;
+  --danger-strong: #791f1f;
+  --danger-soft-bg: #fcebeb;
+  --danger-darker: #501313;
+
+  /* Столбцы графика «История» */
+  --chart-over: #e24b4a;
+  --chart-near: #ef9f27;
+  --chart-empty: #d3d1c7;
+
+  /* Макро-плашки на дашборде (БЖУ) */
+  --macro-p-bg: #e6f1fb;
+  --macro-p-text: #042c53;
+  --macro-f-bg: #fef4e0;
+  --macro-f-text: #6b3f00;
+  --macro-c-bg: #fbeaf0;
+  --macro-c-text: #4b1528;
+
+  /* Столбики БЖУ на графике «История» */
+  --macro-p: #378ADD;
+  --macro-f: #EF9F27;
+  --macro-c: #D4537E;
+
+  /* Тени */
+  --shadow-app: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-suggest: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-tab: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-switch: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] {
+  --bg-page: #0f0f0e;
+  --bg-app: #1a1a1a;
+  --bg-card: #232321;
+  --bg-soft: #262624;
+  --bg-track: #2e2e2c;
+
+  --text-primary: #ededed;
+  --text-secondary: #c2c0b8;
+  --text-muted: #8e8c84;
+  --text-on-accent: #0a1f17;
+
+  --border-light: #2e2e2c;
+  --border-medium: #3a3a36;
+
+  --accent: #2bc185;
+  --accent-strong: #34d695;
+  --accent-darker: #d0f0e3;
+  --accent-soft-bg: #143a2c;
+  --accent-light: #2bc185;
+
+  --nav-active: #ededed;
+  --nav-active-text: #1a1a1a;
+
+  --warning: #f5b14a;
+  --warning-strong: #f5b14a;
+  --warning-soft-bg: #3d2316;
+  --warning-darker: #f8c886;
+  --warning-border: #c46a44;
+
+  --danger: #ef6b6b;
+  --danger-strong: #ff7f7f;
+  --danger-soft-bg: #3d1b1b;
+  --danger-darker: #f5a8a8;
+
+  --chart-over: #ef6b6b;
+  --chart-near: #f5b14a;
+  --chart-empty: #3a3a36;
+
+  --macro-p-bg: #16294a;
+  --macro-p-text: #b9d2f5;
+  --macro-f-bg: #3d2e10;
+  --macro-f-text: #f7d68f;
+  --macro-c-bg: #3d1828;
+  --macro-c-text: #f5b3c8;
+
+  --macro-p: #58a3eb;
+  --macro-f: #F2B14A;
+  --macro-c: #E27DA0;
+
+  --shadow-app: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-suggest: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-tab: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-switch: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,8 +140,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #f5f5f0;
-  color: #2c2c2a;
+  background: var(--bg-page);
+  color: var(--text-primary);
   min-height: 100vh;
   padding: 16px;
   display: flex;
@@ -21,21 +151,21 @@ body {
 .app {
   width: 100%;
   max-width: 420px;
-  background: #ffffff;
+  background: var(--bg-app);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-app);
 }
 
 /* Шапка */
 .header {
   padding: 16px 18px 12px;
-  border-bottom: 1px solid #ececec;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .date {
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
   text-transform: capitalize;
 }
 
@@ -52,7 +182,7 @@ body {
 
 .label {
   font-size: 13px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -70,11 +200,11 @@ body {
 
 .balance-unit {
   font-size: 14px;
-  color: #888780;
+  color: var(--text-muted);
 }
 
 .progress {
-  background: #ececec;
+  background: var(--bg-track);
   height: 8px;
   border-radius: 4px;
   overflow: hidden;
@@ -82,7 +212,7 @@ body {
 }
 
 .progress-bar {
-  background: #1d9e75;
+  background: var(--accent);
   height: 100%;
   width: 0%;
   transition: width 0.3s, background 0.3s;
@@ -101,23 +231,23 @@ body {
 }
 
 .stat-eaten {
-  background: #e1f5ee;
-  color: #04342c;
+  background: var(--accent-soft-bg);
+  color: var(--accent-darker);
 }
 
 .stat-eaten .stat-label,
 .stat-eaten .stat-unit {
-  color: #0f6e56;
+  color: var(--accent-strong);
 }
 
 .stat-burned {
-  background: #faece7;
-  color: #4a1b0c;
+  background: var(--warning-soft-bg);
+  color: var(--warning-darker);
 }
 
 .stat-burned .stat-label,
 .stat-burned .stat-unit {
-  color: #993c1d;
+  color: var(--warning-strong);
 }
 
 .stat-label {
@@ -148,9 +278,9 @@ body {
   text-align: center;
 }
 
-.macro-p { background: #e6f1fb; color: #042c53; }
-.macro-f { background: #fef4e0; color: #6b3f00; }
-.macro-c { background: #fbeaf0; color: #4b1528; }
+.macro-p { background: var(--macro-p-bg); color: var(--macro-p-text); }
+.macro-f { background: var(--macro-f-bg); color: var(--macro-f-text); }
+.macro-c { background: var(--macro-c-bg); color: var(--macro-c-text); }
 
 .macro-label {
   font-size: 11px;
@@ -177,19 +307,19 @@ body {
 
 .goal-label {
   font-size: 13px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .goal-status {
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
 }
 
 /* Блоки */
 .block {
   padding: 14px 18px;
-  border-top: 1px solid #ececec;
+  border-top: 1px solid var(--border-light);
 }
 
 .block-header {
@@ -214,7 +344,7 @@ body {
   font-size: 12px;
   background: transparent;
   border: none;
-  color: #1d9e75;
+  color: var(--accent);
   cursor: pointer;
   padding: 4px 6px;
   font-family: inherit;
@@ -222,13 +352,13 @@ body {
 }
 
 .btn-add:hover {
-  color: #0f6e56;
+  color: var(--accent-strong);
   text-decoration: underline;
 }
 
 /* Форма создания «своего» */
 .custom-form {
-  background: #f5f5f0;
+  background: var(--bg-soft);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 12px;
@@ -278,21 +408,21 @@ body {
   top: 100%;
   left: 0;
   right: 0;
-  background: #ffffff;
-  border: 1px solid #d3d1c7;
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
   border-radius: 8px;
   max-height: 180px;
   overflow-y: auto;
   z-index: 10;
   margin-top: 2px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-suggest);
 }
 
 .suggest-item {
   padding: 8px 10px;
   font-size: 13px;
   cursor: pointer;
-  border-bottom: 1px solid #ececec;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -303,23 +433,23 @@ body {
 }
 
 .suggest-item:hover {
-  background: #f5f5f0;
+  background: var(--bg-soft);
 }
 
 .suggest-meta {
-  color: #888780;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
 .suggest-empty {
   padding: 8px 10px;
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
 }
 
 /* Звёздочка «свой продукт» */
 .custom-mark {
-  color: #ef9f27;
+  color: var(--warning);
   font-size: 11px;
   margin-right: 4px;
 }
@@ -334,13 +464,15 @@ body {
 
 input[type="text"],
 input[type="number"],
+input[type="time"],
 select {
   flex: 1;
   font-size: 13px;
   padding: 8px 10px;
-  border: 1px solid #d3d1c7;
+  border: 1px solid var(--border-medium);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--bg-card);
+  color: var(--text-primary);
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s;
@@ -349,8 +481,9 @@ select {
 
 input[type="text"]:focus,
 input[type="number"]:focus,
+input[type="time"]:focus,
 select:focus {
-  border-color: #1d9e75;
+  border-color: var(--accent);
 }
 
 select {
@@ -365,12 +498,12 @@ select {
 .calc {
   flex: 1;
   font-size: 13px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   text-align: right;
 }
 
 .calc.active {
-  color: #0f6e56;
+  color: var(--accent-strong);
   font-weight: 500;
 }
 
@@ -380,8 +513,8 @@ select {
   padding: 9px 12px;
   font-size: 13px;
   font-weight: 500;
-  background: #1d9e75;
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--text-on-accent);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -390,7 +523,7 @@ select {
 }
 
 .btn-primary:hover {
-  background: #0f6e56;
+  background: var(--accent-strong);
 }
 
 .btn-primary:active {
@@ -402,15 +535,15 @@ select {
   padding: 9px 12px;
   font-size: 13px;
   background: transparent;
-  color: #5f5e5a;
-  border: 1px solid #d3d1c7;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: 6px;
   cursor: pointer;
   font-family: inherit;
 }
 
 .btn-secondary:hover {
-  background: #ececec;
+  background: var(--bg-track);
 }
 
 .btn-close-day {
@@ -418,8 +551,8 @@ select {
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 500;
-  background: #0f6e56;
-  color: #ffffff;
+  background: var(--accent-strong);
+  color: var(--text-on-accent);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -429,7 +562,7 @@ select {
 }
 
 .btn-close-day:hover:not(:disabled) {
-  background: #04342c;
+  background: var(--accent-darker);
 }
 
 .btn-close-day:disabled {
@@ -442,16 +575,16 @@ select {
   padding: 8px;
   font-size: 12px;
   background: transparent;
-  color: #888780;
-  border: 1px solid #ececec;
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   cursor: pointer;
   font-family: inherit;
 }
 
 .btn-reset:hover {
-  background: #f5f5f0;
-  color: #5f5e5a;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
 }
 
 /* Списки */
@@ -465,7 +598,7 @@ select {
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid #ececec;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .list-item:last-child {
@@ -477,12 +610,12 @@ select {
 }
 
 .list-item-meta {
-  color: #888780;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
 .list-item-kcal {
-  color: #5f5e5a;
+  color: var(--text-secondary);
   margin-right: 4px;
 }
 
@@ -491,13 +624,13 @@ select {
   background: none;
   cursor: pointer;
   padding: 2px 6px;
-  color: #a32d2d;
+  color: var(--danger);
   font-size: 14px;
   line-height: 1;
 }
 
 .btn-remove:hover {
-  color: #791f1f;
+  color: var(--danger-strong);
 }
 
 /* История */
@@ -515,7 +648,7 @@ select {
 .period-switch {
   display: flex;
   gap: 4px;
-  background: #f5f5f0;
+  background: var(--bg-soft);
   border-radius: 6px;
   padding: 2px;
 }
@@ -525,16 +658,16 @@ select {
   padding: 4px 10px;
   border: none;
   background: transparent;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   border-radius: 4px;
   cursor: pointer;
   font-family: inherit;
 }
 
 .period-btn.active {
-  background: #ffffff;
-  color: #2c2c2a;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-tab);
 }
 
 .chart {
@@ -561,14 +694,14 @@ select {
 
 .chart-bar-value {
   font-size: 10px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   white-space: nowrap;
   margin-bottom: 2px;
 }
 
 .chart-bar-fill {
   width: 100%;
-  background: #1d9e75;
+  background: var(--accent);
   border-radius: 3px 3px 0 0;
   transition: opacity 0.15s;
   min-height: 4px;
@@ -578,16 +711,16 @@ select {
   opacity: 0.8;
 }
 
-.chart-bar-fill.over { background: #e24b4a; }
-.chart-bar-fill.near { background: #ef9f27; }
-.chart-bar-fill.empty { background: #d3d1c7; }
+.chart-bar-fill.over { background: var(--chart-over); }
+.chart-bar-fill.near { background: var(--chart-near); }
+.chart-bar-fill.empty { background: var(--chart-empty); }
 
 .chart-bar-label {
   margin-top: 6px;
   font-size: 10px;
-  color: #888780;
+  color: var(--text-muted);
   white-space: nowrap;
-  border-top: 1px solid #ececec;
+  border-top: 1px solid var(--border-light);
   padding-top: 6px;
   width: 100%;
   text-align: center;
@@ -595,7 +728,7 @@ select {
 
 .history-empty {
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
   text-align: center;
   padding: 20px 0;
   display: none;
@@ -619,7 +752,7 @@ select {
 
 .settings-row label {
   font-size: 13px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   flex: 1;
 }
 
@@ -631,13 +764,13 @@ select {
 
 .unit-label {
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
   flex: 0 0 30px;
 }
 
 .settings-status {
   font-size: 12px;
-  color: #0f6e56;
+  color: var(--accent-strong);
   text-align: center;
   margin-top: 8px;
   opacity: 0;
@@ -648,14 +781,63 @@ select {
   opacity: 1;
 }
 
+/* Оформление — выбор темы */
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-option:hover {
+  background: var(--bg-soft);
+}
+
+.theme-option input[type="radio"] {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.theme-option-text {
+  flex: 1;
+}
+
+.theme-option-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.theme-option.selected {
+  border-color: var(--accent);
+}
+
 /* ============================================
    МОИ ПРОДУКТЫ — список с редактированием
    ============================================ */
 
 .block-meta {
   font-size: 12px;
-  color: #888780;
-  background: #f5f5f0;
+  color: var(--text-muted);
+  background: var(--bg-soft);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -670,10 +852,10 @@ select {
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid #ececec;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   margin-bottom: 6px;
-  background: #ffffff;
+  background: var(--bg-card);
 }
 
 .my-item:last-child {
@@ -696,7 +878,7 @@ select {
 
 .my-item-meta {
   font-size: 11px;
-  color: #888780;
+  color: var(--text-muted);
 }
 
 .my-item-actions {
@@ -705,8 +887,9 @@ select {
 }
 
 .my-item-btn {
-  border: 1px solid #ececec;
-  background: #ffffff;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-primary);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
@@ -716,16 +899,16 @@ select {
 }
 
 .my-item-btn:hover {
-  background: #f5f5f0;
+  background: var(--bg-soft);
 }
 
 .my-item-btn.delete {
-  color: #a32d2d;
+  color: var(--danger);
 }
 
 .my-empty {
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
   text-align: center;
   padding: 20px 12px;
 }
@@ -762,8 +945,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #ffffff;
-  border-top: 1px solid #ececec;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
   display: flex;
   z-index: 100;
   /* Для устройств с «безопасной зоной» внизу (iPhone) */
@@ -781,7 +964,7 @@ body {
   gap: 2px;
   cursor: pointer;
   font-family: inherit;
-  color: #888780;
+  color: var(--text-muted);
   transition: color 0.15s;
   border-top: 2px solid transparent;
   /* Чтобы тап не подсвечивал серым фоном на телефоне */
@@ -789,12 +972,12 @@ body {
 }
 
 .tab.active {
-  color: #1a1a1a;
-  border-top-color: #1a1a1a;
+  color: var(--nav-active);
+  border-top-color: var(--nav-active);
 }
 
 .tab:hover {
-  color: #5f5e5a;
+  color: var(--text-secondary);
 }
 
 .tab-icon {
@@ -813,7 +996,7 @@ body {
 
 .chart-subtitle {
   font-size: 12px;
-  color: #888780;
+  color: var(--text-muted);
   margin: 4px 0 6px;
 }
 
@@ -842,9 +1025,9 @@ body {
   max-width: 8px;
 }
 
-.macro-bar-p { background: #378ADD; } /* белки — синий */
-.macro-bar-f { background: #EF9F27; } /* жиры — жёлтый */
-.macro-bar-c { background: #D4537E; } /* углеводы — розовый */
+.macro-bar-p { background: var(--macro-p); } /* белки — синий */
+.macro-bar-f { background: var(--macro-f); } /* жиры — жёлтый */
+.macro-bar-c { background: var(--macro-c); } /* углеводы — розовый */
 
 /* День без данных — серая «заглушка» */
 .chart-bar-skip {
@@ -854,7 +1037,7 @@ body {
 .empty-bar {
   width: 100%;
   height: 2px;
-  background: #d3d1c7;
+  background: var(--chart-empty);
   border-radius: 1px;
 }
 
@@ -865,7 +1048,7 @@ body {
   justify-content: center;
   margin: 8px 0 12px;
   font-size: 11px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   flex-wrap: wrap;
 }
 
@@ -882,9 +1065,9 @@ body {
   display: inline-block;
 }
 
-.legend-dot.legend-p { background: #378ADD; }
-.legend-dot.legend-f { background: #EF9F27; }
-.legend-dot.legend-c { background: #D4537E; }
+.legend-dot.legend-p { background: var(--macro-p); }
+.legend-dot.legend-f { background: var(--macro-f); }
+.legend-dot.legend-c { background: var(--macro-c); }
 
 .chart-macros.hidden {
   display: none;
@@ -905,9 +1088,9 @@ body {
   flex: 1;
   font-size: 12px;
   padding: 8px 4px;
-  border: 1px solid #ececec;
-  background: #ffffff;
-  color: #5f5e5a;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   border-radius: 6px;
   cursor: pointer;
   font-family: inherit;
@@ -917,25 +1100,25 @@ body {
 }
 
 .weekday-btn:hover {
-  background: #f5f5f0;
+  background: var(--bg-soft);
 }
 
 .weekday-btn.active {
-  background: #1a1a1a;
-  color: #ffffff;
-  border-color: #1a1a1a;
+  background: var(--nav-active);
+  color: var(--nav-active-text);
+  border-color: var(--nav-active);
 }
 
 .weekday-btn.today {
-  border-color: #1d9e75;
-  color: #0f6e56;
+  border-color: var(--accent);
+  color: var(--accent-strong);
   font-weight: 500;
 }
 
 .weekday-btn.today.active {
-  background: #1d9e75;
-  color: #ffffff;
-  border-color: #1d9e75;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
 
 /* Карточки приёмов пищи в Плане */
@@ -946,8 +1129,8 @@ body {
 }
 
 .plan-meal {
-  background: #ffffff;
-  border: 1px solid #ececec;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 12px;
 }
@@ -966,7 +1149,7 @@ body {
 
 .plan-meal-meta {
   font-size: 11px;
-  color: #888780;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -977,7 +1160,7 @@ body {
 
 .plan-meal-items {
   font-size: 12px;
-  color: #5f5e5a;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -994,8 +1177,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 6px 10px;
-  background: #ffffff;
-  border: 1px solid #ececec;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   font-size: 12px;
 }
@@ -1009,23 +1192,23 @@ body {
 }
 
 .meal-item-grams {
-  color: #888780;
+  color: var(--text-muted);
   margin-right: 6px;
   font-size: 11px;
 }
 
 /* План на сегодня — карточки в Дневнике */
 .today-meal {
-  background: #ffffff;
-  border: 1px solid #ececec;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 6px;
 }
 
 .today-meal.done {
-  background: #e1f5ee;
-  border-color: #5dcaa5;
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-light);
 }
 
 .today-meal-row {
@@ -1046,18 +1229,18 @@ body {
 }
 
 .today-meal.done .today-meal-name {
-  color: #04342c;
+  color: var(--accent-darker);
 }
 
 .today-meal-meta {
   font-size: 11px;
-  color: #888780;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .today-meal-items {
   font-size: 11px;
-  color: #888780;
+  color: var(--text-muted);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -1065,8 +1248,8 @@ body {
 .btn-eat {
   font-size: 12px;
   padding: 6px 12px;
-  background: #1d9e75;
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--text-on-accent);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -1077,13 +1260,13 @@ body {
 }
 
 .btn-eat:hover {
-  background: #0f6e56;
+  background: var(--accent-strong);
 }
 
 .btn-eat.done {
-  background: #ffffff;
-  color: #0f6e56;
-  border: 1px solid #5dcaa5;
+  background: var(--bg-card);
+  color: var(--accent-strong);
+  border: 1px solid var(--accent-light);
 }
 
 /* ============================================
@@ -1109,7 +1292,7 @@ body {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #d3d1c7;
+  background: var(--border-medium);
   border-radius: 24px;
   transition: background 0.2s;
 }
@@ -1121,14 +1304,14 @@ body {
   width: 20px;
   left: 2px;
   bottom: 2px;
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 50%;
   transition: transform 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-switch);
 }
 
 .switch input:checked + .slider {
-  background: #1d9e75;
+  background: var(--accent);
 }
 
 .switch input:checked + .slider:before {
@@ -1138,8 +1321,8 @@ body {
 /* Информационная подсказка */
 .notif-info {
   font-size: 11px;
-  color: #5f5e5a;
-  background: #f5f5f0;
+  color: var(--text-secondary);
+  background: var(--bg-soft);
   padding: 8px 10px;
   border-radius: 6px;
   margin-top: 10px;
@@ -1147,30 +1330,30 @@ body {
 }
 
 .notif-info.success {
-  background: #e1f5ee;
-  color: #04342c;
+  background: var(--accent-soft-bg);
+  color: var(--accent-darker);
 }
 
 .notif-info.error {
-  background: #fcebeb;
-  color: #501313;
+  background: var(--danger-soft-bg);
+  color: var(--danger-darker);
 }
 
 /* Время приёма в карточке */
 .plan-meal-time,
 .today-meal-time {
   font-size: 11px;
-  color: #1d9e75;
+  color: var(--accent);
   font-weight: 500;
   margin-right: 6px;
 }
 
 /* Пропущенный приём (время прошло, но не отмечен) */
 .today-meal.missed {
-  background: #faece7;
-  border-color: #F0997B;
+  background: var(--warning-soft-bg);
+  border-color: var(--warning-border);
 }
 
 .today-meal.missed .today-meal-name {
-  color: #993C1D;
+  color: var(--warning-strong);
 }

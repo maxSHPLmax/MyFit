@@ -3,7 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1a1a1a">
+
+  <meta name="theme-color" id="meta-theme-color" content="#f5f5f0">
+
+  <!-- Тема: применяем ДО отрисовки, чтобы избежать «вспышки» светлого фона.
+       Сохранённый выбор: 'light' | 'dark' | 'system'. По умолчанию — 'system'. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('myfit-theme');
+        var choice = (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system';
+        var effective = (choice === 'system')
+          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : choice;
+        document.documentElement.setAttribute('data-theme', effective);
+        var meta = document.getElementById('meta-theme-color');
+        if (meta) meta.setAttribute('content', effective === 'dark' ? '#1a1a1a' : '#f5f5f0');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
   <title>MyFit — дневник калорий</title>
 
   <!-- PWA -->
@@ -249,7 +269,7 @@
             <button class="weekday-btn" data-day="saturday">Сб</button>
             <button class="weekday-btn" data-day="sunday">Вс</button>
           </div>
-          <p style="font-size: 11px; color: #888780;">Существующие приёмы выбранного дня будут заменены</p>
+          <p style="font-size: 11px; color: var(--text-muted);">Существующие приёмы выбранного дня будут заменены</p>
           <div class="form-actions">
             <button id="copy-cancel" class="btn-secondary">Отмена</button>
             <button id="copy-apply" class="btn-primary">Скопировать</button>
@@ -262,12 +282,12 @@
           <input id="meal-name" type="text" placeholder="Название (Завтрак, Обед, Перекус...)" autocomplete="off">
 
           <div class="form-row" style="align-items: center;">
-            <label for="meal-time" style="font-size: 12px; color: #5f5e5a; flex: 0 0 auto;">⏰ Время:</label>
+            <label for="meal-time" style="font-size: 12px; color: var(--text-secondary); flex: 0 0 auto;">⏰ Время:</label>
             <input id="meal-time" type="time" style="flex: 0 0 110px;">
             <button id="meal-time-clear" class="btn-secondary" style="flex: 0 0 auto; padding: 6px 10px; font-size: 11px; width: auto;" title="Без времени">✕</button>
           </div>
 
-          <p style="font-size: 12px; color: #5f5e5a; margin-top: 4px;">Продукты:</p>
+          <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Продукты:</p>
           <div id="meal-items-list" class="meal-items"></div>
 
           <!-- Добавление продукта в приём -->
@@ -322,6 +342,28 @@
       </section>
 
       <section class="block">
+        <p class="block-title">🎨 Оформление</p>
+
+        <div class="theme-options" role="radiogroup" aria-label="Выбор темы">
+          <label class="theme-option" data-theme-choice="light">
+            <input type="radio" name="theme-choice" value="light">
+            <span class="theme-option-text">Светлая</span>
+          </label>
+          <label class="theme-option" data-theme-choice="dark">
+            <input type="radio" name="theme-choice" value="dark">
+            <span class="theme-option-text">Тёмная</span>
+          </label>
+          <label class="theme-option" data-theme-choice="system">
+            <input type="radio" name="theme-choice" value="system">
+            <span class="theme-option-text">
+              Как в системе
+              <span class="theme-option-hint">подстраивается под настройку устройства</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="block">
         <p class="block-title">🔔 Напоминания о приёмах пищи</p>
 
         <div class="settings-row">
@@ -355,7 +397,7 @@
 
       <section class="block">
         <p class="block-title">О приложении</p>
-        <p style="font-size: 13px; color: #5f5e5a; line-height: 1.6;">
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
           MyFit — простой трекер калорий и активности.<br>
           Все данные хранятся локально на твоём устройстве.
         </p>

@@ -12,6 +12,7 @@ const PLAN_KEY           = 'myfit-plan';      // план питания по д
 const MEALS_DONE_KEY     = 'myfit-meals-done'; // отмеченные приёмы сегодня
 const NOTIF_SETTINGS_KEY = 'myfit-notif';      // настройки напоминаний
 const NOTIF_SHOWN_KEY    = 'myfit-notif-shown'; // какие уведомления уже показывали сегодня
+const THEME_KEY          = 'myfit-theme';      // выбор темы: 'light' | 'dark' | 'system'
 
 // --- Цели по умолчанию ---
 const DEFAULT_GOALS = {
@@ -1342,6 +1343,70 @@ function escapeHtml(str) {
 }
 
 // ============================================
+// 13b. ТЕМА ОФОРМЛЕНИЯ
+// ============================================
+// Сохранённый выбор: 'light' | 'dark' | 'system'.
+// В DOM (data-theme на <html>) кладём только эффективное значение: 'light' или 'dark'.
+// Когда выбран 'system' — слушаем prefers-color-scheme и переключаем динамически.
+// Первоначальное применение делается инлайн-скриптом в <head>, до отрисовки.
+
+const themeMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+function loadThemeChoice() {
+  const saved = localStorage.getItem(THEME_KEY);
+  return (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system';
+}
+
+function computeEffectiveTheme(choice) {
+  if (choice === 'system') {
+    return (themeMedia && themeMedia.matches) ? 'dark' : 'light';
+  }
+  return choice;
+}
+
+function applyTheme(choice) {
+  const effective = computeEffectiveTheme(choice);
+  document.documentElement.setAttribute('data-theme', effective);
+
+  // Синхронизируем <meta name="theme-color"> — это цвет статус-бара в TWA/PWA.
+  const meta = document.getElementById('meta-theme-color');
+  if (meta) meta.setAttribute('content', effective === 'dark' ? '#1a1a1a' : '#f5f5f0');
+
+  // Подсветить активный radio и его «карточку»
+  document.querySelectorAll('input[name="theme-choice"]').forEach((input) => {
+    const selected = input.value === choice;
+    input.checked = selected;
+    const wrap = input.closest('.theme-option');
+    if (wrap) wrap.classList.toggle('selected', selected);
+  });
+}
+
+function setThemeChoice(choice) {
+  localStorage.setItem(THEME_KEY, choice);
+  applyTheme(choice);
+}
+
+function initTheme() {
+  applyTheme(loadThemeChoice());
+
+  // Слушаем системную тему — реагируем только когда выбран 'system'
+  if (themeMedia) {
+    const handler = () => {
+      if (loadThemeChoice() === 'system') applyTheme('system');
+    };
+    if (themeMedia.addEventListener) themeMedia.addEventListener('change', handler);
+    else if (themeMedia.addListener) themeMedia.addListener(handler); // старые Safari
+  }
+
+  // Обработчики radio-кнопок
+  document.querySelectorAll('input[name="theme-choice"]').forEach((input) => {
+    input.addEventListener('change', (e) => {
+      if (e.target.checked) setThemeChoice(e.target.value);
+    });
+  });
+}
+
+// ============================================
 // 14. СОБЫТИЯ
 // ============================================
 foodSearch.addEventListener('input', (e) => {
@@ -1529,6 +1594,7 @@ loadGoalsIntoForm();
 loadNotifSettingsIntoForm();
 updateNotifPermissionInfo();
 renderMyProducts();
+initTheme();
 render();
 
 // Запускаем проверку напоминаний каждую минуту
