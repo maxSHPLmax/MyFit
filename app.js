@@ -173,6 +173,8 @@ function addActivity() {
 // 6. ОТРИСОВКА (главный пересчёт всего экрана)
 // ============================================
 function render() {
+  save(); // сохраняем данные при каждом обновлении
+
   // Считаем суммы
   const eaten   = foods.reduce((sum, f) => sum + f.kcal, 0);
   const burned  = activities.reduce((sum, a) => sum + a.kcal, 0);
@@ -257,7 +259,46 @@ function renderActivityList() {
 }
 
 // ============================================
-// 7. УТИЛИТА: защита от HTML в названиях
+// 7. СОХРАНЕНИЕ И ЗАГРУЗКА (LocalStorage)
+// ============================================
+
+// Ключ, под которым храним данные в браузере
+const STORAGE_KEY = 'myfit-data';
+
+// Сохранить текущее состояние
+function save() {
+  const data = {
+    date: new Date().toDateString(), // дата сохранения
+    foods: foods,
+    activities: activities
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Загрузить состояние при старте
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return; // ничего не сохранено — выходим
+
+  try {
+    const data = JSON.parse(raw);
+
+    // Если сохранённые данные — за другой день, не загружаем
+    // (каждый новый день начинаем с чистого листа)
+    if (data.date !== new Date().toDateString()) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    foods = data.foods || [];
+    activities = data.activities || [];
+  } catch (e) {
+    console.error('Не удалось загрузить данные:', e);
+  }
+}
+
+// ============================================
+// 8. УТИЛИТА: защита от HTML в названиях
 // ============================================
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
@@ -266,7 +307,7 @@ function escapeHtml(str) {
 }
 
 // ============================================
-// 8. ПРИВЯЗКА СОБЫТИЙ
+// 9. ПРИВЯЗКА СОБЫТИЙ
 // ============================================
 
 // Поиск продуктов
@@ -300,7 +341,8 @@ resetBtn.addEventListener('click', () => {
 });
 
 // ============================================
-// 9. СТАРТ
+// 10. СТАРТ
 // ============================================
 showTodayDate();
-render();
+load();   // загружаем сохранённые данные
+render(); // отрисовываем экран
