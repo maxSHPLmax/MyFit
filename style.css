@@ -414,21 +414,29 @@ select {
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  height: 140px;
-  padding: 20px 0 8px;
+  height: 180px;            /* общая высота блока */
+  padding: 20px 0 0;
   overflow-x: auto;
-  border-bottom: 1px solid #ececec;
   margin-bottom: 8px;
 }
 
 .chart-bar {
   flex: 1;
   min-width: 14px;
+  height: 100%;             /* столбик занимает всю высоту */
   display: flex;
   flex-direction: column;
+  justify-content: flex-end; /* содержимое прижато ко дну */
   align-items: center;
   position: relative;
   cursor: pointer;
+}
+
+.chart-bar-value {
+  font-size: 10px;
+  color: #5f5e5a;
+  white-space: nowrap;
+  margin-bottom: 2px;       /* отступ от верха столбика */
 }
 
 .chart-bar-fill {
@@ -436,7 +444,7 @@ select {
   background: #1d9e75;
   border-radius: 3px 3px 0 0;
   transition: opacity 0.15s;
-  min-height: 2px;
+  min-height: 4px;
 }
 
 .chart-bar:hover .chart-bar-fill {
@@ -447,19 +455,15 @@ select {
 .chart-bar-fill.near { background: #ef9f27; }
 .chart-bar-fill.empty { background: #d3d1c7; }
 
-.chart-bar-value {
-  position: absolute;
-  top: -18px;
-  font-size: 10px;
-  color: #5f5e5a;
-  white-space: nowrap;
-}
-
 .chart-bar-label {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 10px;
   color: #888780;
   white-space: nowrap;
+  border-top: 1px solid #ececec;
+  padding-top: 6px;
+  width: 100%;
+  text-align: center;
 }
 
 .history-empty {
