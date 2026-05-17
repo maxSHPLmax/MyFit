@@ -533,6 +533,10 @@ function closeDay() {
   const eaten   = foods.reduce((s, f) => s + f.kcal, 0);
   const burned  = activities.reduce((s, a) => s + a.kcal, 0);
   const balance = eaten - burned;
+  // Считаем БЖУ за день
+  const protein = foods.reduce((s, f) => s + (f.protein || 0), 0);
+  const fat     = foods.reduce((s, f) => s + (f.fat     || 0), 0);
+  const carbs   = foods.reduce((s, f) => s + (f.carbs   || 0), 0);
 
   const today = new Date();
   const isoDate = today.getFullYear() + '-' +
@@ -544,7 +548,10 @@ function closeDay() {
     date: isoDate,
     eaten: Math.round(eaten),
     burned: Math.round(burned),
-    balance: Math.round(balance)
+    balance: Math.round(balance),
+    protein: Math.round(protein),
+    fat: Math.round(fat),
+    carbs: Math.round(carbs)
   });
   history.sort((a, b) => a.date.localeCompare(b.date));
 
@@ -555,24 +562,30 @@ function closeDay() {
 }
 
 // ============================================
-// 10. ИСТОРИЯ — график
+// 10. ИСТОРИЯ — графики (калории + БЖУ)
 // ============================================
 function renderHistory() {
+  const macrosChart = $('history-chart-macros');
+
   if (history.length === 0) {
     historyChart.classList.add('hidden');
+    macrosChart.classList.add('hidden');
     historyEmpty.classList.add('show');
     return;
   }
 
   historyChart.classList.remove('hidden');
+  macrosChart.classList.remove('hidden');
   historyEmpty.classList.remove('show');
 
   const days = history.slice(-chartPeriod);
-  const maxValue = Math.max(goals.kcal, ...days.map(d => d.balance));
+
+  // --- ГРАФИК 1: КАЛОРИИ ---
+  const maxKcal = Math.max(goals.kcal, ...days.map(d => d.balance));
 
   historyChart.innerHTML = days.map(d => {
     const value = Math.max(0, d.balance);
-    const heightPct = (value / maxValue) * 100;
+    const heightPct = (value / maxKcal) * 100;
 
     let cls = 'chart-bar-fill';
     if (d.balance > goals.kcal) cls += ' over';
@@ -586,6 +599,53 @@ function renderHistory() {
       <div class="chart-bar" title="${d.date}: ${d.balance} ккал (съедено ${d.eaten}, сожжено ${d.burned})">
         <span class="chart-bar-value">${d.balance}</span>
         <div class="${cls}" style="height: ${heightPct}%"></div>
+        <span class="chart-bar-label">${label}</span>
+      </div>
+    `;
+  }).join('');
+
+  // --- ГРАФИК 2: БЖУ ---
+  renderMacrosChart(days, macrosChart);
+}
+
+function renderMacrosChart(days, container) {
+  // Максимум среди всех значений Б/Ж/У и среди целей — чтобы масштаб был общим
+  const allValues = days.flatMap(d => [d.protein || 0, d.fat || 0, d.carbs || 0]);
+  const maxMacro = Math.max(goals.protein, goals.fat, goals.carbs, ...allValues, 1);
+
+  container.innerHTML = days.map(d => {
+    const dateObj = new Date(d.date);
+    const label = dateObj.getDate() + '.' + String(dateObj.getMonth() + 1).padStart(2, '0');
+
+    // Если в этом дне нет БЖУ — показываем пропуск
+    const hasMacros = (d.protein !== undefined || d.fat !== undefined || d.carbs !== undefined);
+
+    if (!hasMacros) {
+      return `
+        <div class="chart-bar chart-bar-macros chart-bar-skip" title="${d.date}: данных по БЖУ нет">
+          <div class="macros-group">
+            <div class="macro-bar empty-bar"></div>
+          </div>
+          <span class="chart-bar-label">${label}</span>
+        </div>
+      `;
+    }
+
+    const p = d.protein || 0;
+    const f = d.fat || 0;
+    const c = d.carbs || 0;
+
+    const pHeight = (p / maxMacro) * 100;
+    const fHeight = (f / maxMacro) * 100;
+    const cHeight = (c / maxMacro) * 100;
+
+    return `
+      <div class="chart-bar chart-bar-macros" title="${d.date}: Б ${p}г · Ж ${f}г · У ${c}г">
+        <div class="macros-group">
+          <div class="macro-bar macro-bar-p" style="height: ${pHeight}%" title="Белки ${p}г"></div>
+          <div class="macro-bar macro-bar-f" style="height: ${fHeight}%" title="Жиры ${f}г"></div>
+          <div class="macro-bar macro-bar-c" style="height: ${cHeight}%" title="Углеводы ${c}г"></div>
+        </div>
         <span class="chart-bar-label">${label}</span>
       </div>
     `;
