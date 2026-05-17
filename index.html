@@ -74,6 +74,13 @@
         <p class="goal-status" id="goal-status">Добавь продукт ниже ↓</p>
       </section>
 
+      <!-- План на сегодня -->
+      <section class="block" id="today-plan-block">
+        <p class="block-title">🍽 План на сегодня <span id="today-plan-day" class="block-meta"></span></p>
+        <div id="today-plan-list"></div>
+        <p id="today-plan-empty" class="my-empty">На сегодня план не составлен. <br>Открой вкладку «План» и добавь приёмы пищи на этот день.</p>
+      </section>
+
       <section class="block">
         <p class="block-title">🍎 Добавить продукт</p>
 
@@ -205,6 +212,78 @@
 
     </div>
 
+    <!-- ЭКРАН: ПЛАН -->
+    <div class="screen" id="screen-plan">
+
+      <section class="block">
+        <p class="block-title">🍽 План питания</p>
+
+        <!-- Переключатель дней недели -->
+        <div class="weekday-switch" id="weekday-switch">
+          <button class="weekday-btn" data-day="monday">Пн</button>
+          <button class="weekday-btn" data-day="tuesday">Вт</button>
+          <button class="weekday-btn" data-day="wednesday">Ср</button>
+          <button class="weekday-btn" data-day="thursday">Чт</button>
+          <button class="weekday-btn" data-day="friday">Пт</button>
+          <button class="weekday-btn" data-day="saturday">Сб</button>
+          <button class="weekday-btn" data-day="sunday">Вс</button>
+        </div>
+
+        <!-- Список приёмов выбранного дня -->
+        <div id="plan-meals-list" class="plan-meals"></div>
+        <p id="plan-empty" class="my-empty">На этот день приёмов пищи нет</p>
+
+        <!-- Кнопки -->
+        <button id="add-meal-btn" class="btn-primary" style="margin-top: 12px;">+ Добавить приём пищи</button>
+        <button id="copy-plan-btn" class="btn-secondary" style="margin-top: 8px;">📋 Копировать из другого дня</button>
+
+        <!-- Форма копирования -->
+        <div id="copy-plan-form" class="custom-form hidden" style="margin-top: 12px;">
+          <p class="form-title">Из какого дня скопировать?</p>
+          <div class="weekday-switch" id="copy-from-switch">
+            <button class="weekday-btn" data-day="monday">Пн</button>
+            <button class="weekday-btn" data-day="tuesday">Вт</button>
+            <button class="weekday-btn" data-day="wednesday">Ср</button>
+            <button class="weekday-btn" data-day="thursday">Чт</button>
+            <button class="weekday-btn" data-day="friday">Пт</button>
+            <button class="weekday-btn" data-day="saturday">Сб</button>
+            <button class="weekday-btn" data-day="sunday">Вс</button>
+          </div>
+          <p style="font-size: 11px; color: #888780;">Существующие приёмы выбранного дня будут заменены</p>
+          <div class="form-actions">
+            <button id="copy-cancel" class="btn-secondary">Отмена</button>
+            <button id="copy-apply" class="btn-primary">Скопировать</button>
+          </div>
+        </div>
+
+        <!-- Форма создания/редактирования приёма -->
+        <div id="meal-form" class="custom-form hidden" style="margin-top: 12px;">
+          <p class="form-title" id="meal-form-title">Новый приём пищи</p>
+          <input id="meal-name" type="text" placeholder="Название (Завтрак, Обед, Перекус...)" autocomplete="off">
+
+          <p style="font-size: 12px; color: #5f5e5a; margin-top: 4px;">Продукты:</p>
+          <div id="meal-items-list" class="meal-items"></div>
+
+          <!-- Добавление продукта в приём -->
+          <div class="search-wrap" style="margin-top: 8px;">
+            <input id="meal-product-search" type="text" placeholder="Найти продукт..." autocomplete="off">
+            <div id="meal-product-suggest" class="suggest"></div>
+          </div>
+          <div class="row">
+            <input id="meal-product-grams" type="number" placeholder="вес, г" min="0">
+            <button id="meal-product-add" class="btn-secondary" style="flex: 0 0 auto; width: auto; padding: 8px 14px;">+ Добавить</button>
+          </div>
+
+          <div class="form-actions" style="margin-top: 12px;">
+            <button id="meal-cancel" class="btn-secondary">Отмена</button>
+            <button id="meal-save" class="btn-primary">Сохранить</button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
     <!-- ЭКРАН: НАСТРОЙКИ -->
     <div class="screen" id="screen-settings">
 
@@ -251,6 +330,10 @@
       <button class="tab active" data-tab="diary">
         <span class="tab-icon">🏠</span>
         <span class="tab-label">Дневник</span>
+      </button>
+      <button class="tab" data-tab="plan">
+        <span class="tab-icon">🍽</span>
+        <span class="tab-label">План</span>
       </button>
       <button class="tab" data-tab="history">
         <span class="tab-icon">📊</span>

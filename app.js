@@ -8,6 +8,8 @@ const HISTORY_KEY        = 'myfit-history';   // архив дней
 const GOALS_KEY          = 'myfit-goals';     // цели
 const CUSTOM_PRODUCTS_KEY = 'myfit-products'; // свои продукты
 const CUSTOM_ACTS_KEY    = 'myfit-acts';      // свои активности
+const PLAN_KEY           = 'myfit-plan';      // план питания по дням недели
+const MEALS_DONE_KEY     = 'myfit-meals-done'; // отмеченные приёмы сегодня
 
 // --- Цели по умолчанию ---
 const DEFAULT_GOALS = {
@@ -26,6 +28,23 @@ let customProducts = [];   // свои продукты
 let customActs = [];       // свои активности
 let selectedProduct = null;
 let chartPeriod = 7;
+
+// План питания: один объект, ключи = дни недели
+let plan = {
+  monday: [], tuesday: [], wednesday: [], thursday: [],
+  friday: [], saturday: [], sunday: []
+};
+// ID последнего приёма (для уникальности)
+let nextMealId = 1;
+
+// Какие приёмы сегодня отмечены съеденными
+let mealsDone = { date: '', doneMealIds: [] };
+
+// Состояние редактора плана
+let planSelectedDay = null;       // какой день недели сейчас открыт
+let editingMeal = null;           // редактируемый/создаваемый приём
+let mealProductSelected = null;   // выбранный продукт в форме приёма
+let copyFromDay = null;           // день, из которого копируем
 
 // --- Хелпер ---
 const $ = (id) => document.getElementById(id);
@@ -391,6 +410,367 @@ function deleteMyProduct(index) {
   renderMyProducts();
 }
 
+// ============================================
+// ПЛАН ПИТАНИЯ
+// ============================================
+
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const WEEKDAY_NAMES = {
+  monday: 'понедельник', tuesday: 'вторник', wednesday: 'среда',
+  thursday: 'четверг', friday: 'пятница', saturday: 'суббота', sunday: 'воскресенье'
+};
+
+// Вычислить день недели для строкового ключа
+function getTodayKey() {
+  return WEEKDAYS[new Date().getDay()];
+}
+
+// Подсчёт калорий и БЖУ для приёма пищи
+function calcMealTotals(meal) {
+  let kcal = 0, protein = 0, fat = 0, carbs = 0;
+  for (const item of meal.items) {
+    const p = getAllProducts().find(prod => prod.name === item.productName);
+    if (!p) continue;
+    const k = item.grams / 100;
+    kcal    += p.kcal100 * k;
+    protein += (p.protein || 0) * k;
+    fat     += (p.fat || 0) * k;
+    carbs   += (p.carbs || 0) * k;
+  }
+  return {
+    kcal: Math.round(kcal),
+    protein: Math.round(protein),
+    fat: Math.round(fat),
+    carbs: Math.round(carbs)
+  };
+}
+
+// Отрисовка экрана «План»
+function renderPlanScreen() {
+  // Подсветка кнопок дней недели
+  document.querySelectorAll('#weekday-switch .weekday-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.day === planSelectedDay);
+    btn.classList.toggle('today', btn.dataset.day === getTodayKey());
+  });
+
+  const meals = plan[planSelectedDay] || [];
+  const listEl  = $('plan-meals-list');
+  const emptyEl = $('plan-empty');
+
+  if (meals.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = meals.map((meal, i) => {
+    const totals = calcMealTotals(meal);
+    const itemsText = meal.items.length
+      ? meal.items.map(it => `${escapeHtml(it.productName)} ${it.grams}г`).join(', ')
+      : '<i>пусто</i>';
+
+    return `
+      <div class="plan-meal">
+        <div class="plan-meal-header">
+          <div>
+            <div class="plan-meal-name">${escapeHtml(meal.name)}</div>
+            <div class="plan-meal-meta">${totals.kcal} ккал · Б ${totals.protein} · Ж ${totals.fat} · У ${totals.carbs}</div>
+          </div>
+          <div class="plan-meal-actions">
+            <button class="my-item-btn" data-action="edit" data-i="${i}" title="Редактировать">✏️</button>
+            <button class="my-item-btn delete" data-action="delete" data-i="${i}" title="Удалить">✕</button>
+          </div>
+        </div>
+        <div class="plan-meal-items">${itemsText}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Привязка событий
+  listEl.querySelectorAll('button[data-action="edit"]').forEach(btn => {
+    btn.onclick = () => openMealForm(parseInt(btn.dataset.i));
+  });
+  listEl.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+    btn.onclick = () => deleteMeal(parseInt(btn.dataset.i));
+  });
+}
+
+// Открыть форму создания нового приёма
+function openMealForm(editIndex = null) {
+  editingMeal = editIndex === null
+    ? { id: nextMealId++, name: '', items: [] }
+    : JSON.parse(JSON.stringify(plan[planSelectedDay][editIndex]));
+  // Запомним индекс для сохранения
+  editingMeal._editIndex = editIndex;
+
+  $('meal-form-title').textContent = editIndex === null ? 'Новый приём пищи' : 'Редактировать приём';
+  $('meal-name').value = editingMeal.name;
+  $('meal-product-search').value = '';
+  $('meal-product-grams').value = '';
+  mealProductSelected = null;
+
+  renderMealItems();
+  $('meal-form').classList.remove('hidden');
+  $('meal-name').focus();
+}
+
+function closeMealForm() {
+  editingMeal = null;
+  $('meal-form').classList.add('hidden');
+  $('meal-product-suggest').style.display = 'none';
+}
+
+// Список продуктов внутри редактируемого приёма
+function renderMealItems() {
+  const listEl = $('meal-items-list');
+  if (!editingMeal || editingMeal.items.length === 0) {
+    listEl.innerHTML = '<p style="font-size:11px;color:#888780;padding:6px 0;">Добавь продукты ниже</p>';
+    return;
+  }
+  listEl.innerHTML = editingMeal.items.map((it, i) => `
+    <div class="meal-item">
+      <span class="meal-item-name">${escapeHtml(it.productName)}</span>
+      <span class="meal-item-grams">${it.grams} г</span>
+      <button class="btn-remove" data-i="${i}">✕</button>
+    </div>
+  `).join('');
+  listEl.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.onclick = () => {
+      editingMeal.items.splice(parseInt(btn.dataset.i), 1);
+      renderMealItems();
+    };
+  });
+}
+
+// Подсказки продуктов внутри формы приёма
+function showMealProductSuggestions(query) {
+  const suggestEl = $('meal-product-suggest');
+  const q = query.trim().toLowerCase();
+  if (!q) { suggestEl.style.display = 'none'; return; }
+
+  const matches = getAllProducts()
+    .filter(p => p.name.toLowerCase().includes(q))
+    .slice(0, 6);
+
+  if (matches.length === 0) {
+    suggestEl.innerHTML = '<div class="suggest-empty">Ничего не найдено</div>';
+    suggestEl.style.display = 'block';
+    return;
+  }
+
+  suggestEl.innerHTML = matches.map(p => `
+    <div class="suggest-item" data-name="${escapeHtml(p.name)}">
+      <span>${p.custom ? '<span class="custom-mark">★</span>' : ''}${escapeHtml(p.name)}</span>
+      <span class="suggest-meta">${p.kcal100} ккал/100г</span>
+    </div>
+  `).join('');
+  suggestEl.style.display = 'block';
+
+  suggestEl.querySelectorAll('.suggest-item').forEach(item => {
+    item.onclick = () => {
+      mealProductSelected = getAllProducts().find(p => p.name === item.dataset.name);
+      $('meal-product-search').value = item.dataset.name;
+      suggestEl.style.display = 'none';
+      $('meal-product-grams').focus();
+    };
+  });
+}
+
+// Добавить продукт в редактируемый приём
+function addProductToMeal() {
+  if (!mealProductSelected) { alert('Выбери продукт из списка'); return; }
+  const grams = parseFloat($('meal-product-grams').value);
+  if (!grams || grams <= 0) { alert('Укажи вес'); return; }
+
+  editingMeal.items.push({ productName: mealProductSelected.name, grams });
+  $('meal-product-search').value = '';
+  $('meal-product-grams').value = '';
+  mealProductSelected = null;
+  renderMealItems();
+  $('meal-product-search').focus();
+}
+
+// Сохранить приём (новый или редактируемый)
+function saveMeal() {
+  const name = $('meal-name').value.trim();
+  if (!name) { alert('Укажи название приёма'); return; }
+  if (editingMeal.items.length === 0) { alert('Добавь хотя бы один продукт'); return; }
+
+  editingMeal.name = name;
+  const editIndex = editingMeal._editIndex;
+  delete editingMeal._editIndex;
+
+  if (editIndex === null) {
+    plan[planSelectedDay].push(editingMeal);
+  } else {
+    plan[planSelectedDay][editIndex] = editingMeal;
+  }
+
+  savePlan();
+  closeMealForm();
+  renderPlanScreen();
+  render(); // обновим блок «План на сегодня» в дневнике
+}
+
+// Удалить приём
+function deleteMeal(index) {
+  const meal = plan[planSelectedDay][index];
+  if (!confirm(`Удалить приём «${meal.name}»?`)) return;
+  plan[planSelectedDay].splice(index, 1);
+  savePlan();
+  renderPlanScreen();
+  render();
+}
+
+// Копирование плана из другого дня
+function openCopyForm() {
+  copyFromDay = null;
+  document.querySelectorAll('#copy-from-switch .weekday-btn').forEach(b => b.classList.remove('active'));
+  $('copy-plan-form').classList.remove('hidden');
+}
+
+function closeCopyForm() {
+  $('copy-plan-form').classList.add('hidden');
+}
+
+function applyCopyPlan() {
+  if (!copyFromDay) { alert('Выбери день, из которого копировать'); return; }
+  if (copyFromDay === planSelectedDay) { alert('Это тот же самый день'); return; }
+  if (plan[planSelectedDay].length > 0) {
+    if (!confirm(`Заменить ${plan[planSelectedDay].length} приём(ов) из «${WEEKDAY_NAMES[planSelectedDay]}» на план из «${WEEKDAY_NAMES[copyFromDay]}»?`)) return;
+  }
+  // Глубокая копия с новыми id
+  plan[planSelectedDay] = plan[copyFromDay].map(m => ({
+    id: nextMealId++,
+    name: m.name,
+    items: m.items.map(it => ({ ...it }))
+  }));
+  savePlan();
+  closeCopyForm();
+  renderPlanScreen();
+  render();
+}
+
+// ============================================
+// ПЛАН НА СЕГОДНЯ — отображение в Дневнике
+// ============================================
+function renderTodayPlan() {
+  const todayKey = getTodayKey();
+  const meals = plan[todayKey] || [];
+  const listEl  = $('today-plan-list');
+  const emptyEl = $('today-plan-empty');
+  const dayEl   = $('today-plan-day');
+
+  dayEl.textContent = WEEKDAY_NAMES[todayKey];
+
+  if (meals.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+
+  listEl.innerHTML = meals.map(meal => {
+    const totals = calcMealTotals(meal);
+    const isDone = mealsDone.doneMealIds.includes(meal.id);
+    const itemsText = meal.items.map(it => `${escapeHtml(it.productName)} ${it.grams}г`).join(', ');
+
+    return `
+      <div class="today-meal ${isDone ? 'done' : ''}">
+        <div class="today-meal-row">
+          <div class="today-meal-info">
+            <div class="today-meal-name">${isDone ? '✓ ' : ''}${escapeHtml(meal.name)}</div>
+            <div class="today-meal-meta">${totals.kcal} ккал · Б ${totals.protein} · Ж ${totals.fat} · У ${totals.carbs}</div>
+          </div>
+          <button class="btn-eat ${isDone ? 'done' : ''}" data-meal-id="${meal.id}">
+            ${isDone ? 'Отменить' : '✓ Съел'}
+          </button>
+        </div>
+        <div class="today-meal-items">${itemsText}</div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('.btn-eat').forEach(btn => {
+    btn.onclick = () => toggleMealEaten(parseInt(btn.dataset.mealId));
+  });
+}
+
+// Отметить/снять отметку приёма пищи
+function toggleMealEaten(mealId) {
+  const todayKey = getTodayKey();
+  const meal = (plan[todayKey] || []).find(m => m.id === mealId);
+  if (!meal) return;
+
+  const isDone = mealsDone.doneMealIds.includes(mealId);
+
+  if (isDone) {
+    // Снимаем отметку — удаляем продукты, добавленные из этого приёма
+    foods = foods.filter(f => f._fromMealId !== mealId);
+    mealsDone.doneMealIds = mealsDone.doneMealIds.filter(id => id !== mealId);
+  } else {
+    // Добавляем продукты приёма в дневник
+    for (const item of meal.items) {
+      const p = getAllProducts().find(prod => prod.name === item.productName);
+      if (!p) continue;
+      const k = item.grams / 100;
+      foods.push({
+        name: p.name,
+        grams: item.grams,
+        kcal: p.kcal100 * k,
+        protein: (p.protein || 0) * k,
+        fat:     (p.fat || 0)     * k,
+        carbs:   (p.carbs || 0)   * k,
+        _fromMealId: mealId       // метка, чтобы потом можно было отменить
+      });
+    }
+    mealsDone.doneMealIds.push(mealId);
+  }
+
+  saveMealsDone();
+  render();
+}
+
+// ============================================
+// СОХРАНЕНИЕ / ЗАГРУЗКА ПЛАНА
+// ============================================
+function savePlan() {
+  localStorage.setItem(PLAN_KEY, JSON.stringify({ plan, nextMealId }));
+}
+
+function loadPlan() {
+  const raw = localStorage.getItem(PLAN_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    plan = data.plan || plan;
+    nextMealId = data.nextMealId || 1;
+  } catch (e) { console.error('Не удалось загрузить план:', e); }
+}
+
+function saveMealsDone() {
+  localStorage.setItem(MEALS_DONE_KEY, JSON.stringify(mealsDone));
+}
+
+function loadMealsDone() {
+  const raw = localStorage.getItem(MEALS_DONE_KEY);
+  if (!raw) { mealsDone = { date: new Date().toDateString(), doneMealIds: [] }; return; }
+  try {
+    const data = JSON.parse(raw);
+    // Если данные за другой день — сбрасываем
+    if (data.date !== new Date().toDateString()) {
+      mealsDone = { date: new Date().toDateString(), doneMealIds: [] };
+      saveMealsDone();
+    } else {
+      mealsDone = data;
+    }
+  } catch (e) {
+    mealsDone = { date: new Date().toDateString(), doneMealIds: [] };
+  }
+}
+
 // Своя активность
 function openActivityForm() {
   newActivityForm.classList.remove('hidden');
@@ -483,6 +863,7 @@ function render() {
   renderActivityList();
   updateCloseDayBtn();
   renderHistory();
+  renderTodayPlan();
 }
 
 function renderFoodList() {
@@ -557,7 +938,9 @@ function closeDay() {
 
   foods = [];
   activities = [];
+  mealsDone = { date: new Date().toDateString(), doneMealIds: [] };
   saveHistory();
+  saveMealsDone();
   render();
 }
 
@@ -773,6 +1156,8 @@ resetBtn.addEventListener('click', () => {
   if (confirm('Сбросить все записи за сегодня? История не пострадает.')) {
     foods = [];
     activities = [];
+    mealsDone = { date: new Date().toDateString(), doneMealIds: [] };
+    saveMealsDone();
     render();
   }
 });
@@ -810,6 +1195,7 @@ document.querySelectorAll('.period-btn').forEach(btn => {
 // Названия экранов для заголовка в шапке
 const TAB_TITLES = {
   diary:    'MyFit',
+  plan:     'План питания',
   history:  'История',
   products: 'Мои продукты',
   settings: 'Настройки'
@@ -831,12 +1217,61 @@ function switchTab(tabName) {
   // Обновить заголовок
   document.getElementById('screen-title').textContent = TAB_TITLES[tabName] || 'MyFit';
 
+  // При открытии плана — показать сегодняшний день
+  if (tabName === 'plan') {
+    if (!planSelectedDay) planSelectedDay = getTodayKey();
+    renderPlanScreen();
+  }
+
   // Прокрутить страницу наверх
   window.scrollTo(0, 0);
 }
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+// ============================================
+// СОБЫТИЯ ПЛАНА
+// ============================================
+
+// Переключение дней недели в Плане
+document.querySelectorAll('#weekday-switch .weekday-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    planSelectedDay = btn.dataset.day;
+    renderPlanScreen();
+  });
+});
+
+// Кнопка добавить приём
+$('add-meal-btn').addEventListener('click', () => openMealForm(null));
+
+// Форма приёма пищи
+$('meal-cancel').addEventListener('click', closeMealForm);
+$('meal-save').addEventListener('click', saveMeal);
+$('meal-product-add').addEventListener('click', addProductToMeal);
+
+// Поиск продукта внутри формы приёма
+$('meal-product-search').addEventListener('input', (e) => {
+  mealProductSelected = null;
+  showMealProductSuggestions(e.target.value);
+});
+$('meal-product-search').addEventListener('focus', (e) => showMealProductSuggestions(e.target.value));
+$('meal-product-search').addEventListener('blur', () => {
+  setTimeout(() => $('meal-product-suggest').style.display = 'none', 200);
+});
+
+// Копирование плана
+$('copy-plan-btn').addEventListener('click', openCopyForm);
+$('copy-cancel').addEventListener('click', closeCopyForm);
+$('copy-apply').addEventListener('click', applyCopyPlan);
+
+document.querySelectorAll('#copy-from-switch .weekday-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    copyFromDay = btn.dataset.day;
+    document.querySelectorAll('#copy-from-switch .weekday-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
 });
 
 // ============================================
@@ -847,6 +1282,8 @@ loadGoals();
 loadCustomProducts();
 loadCustomActs();
 loadHistory();
+loadPlan();
+loadMealsDone();
 load();
 
 refillActivitySelect();
