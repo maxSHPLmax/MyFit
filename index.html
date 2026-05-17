@@ -11,7 +11,6 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <!-- iOS-специфичные мета (для красивой установки на iPhone) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MyFit">
@@ -23,181 +22,244 @@
 
   <div class="app">
 
-    <!-- Шапка -->
     <header class="header">
       <p class="date" id="today-date">Сегодня</p>
-      <h1 class="title">MyFit</h1>
+      <h1 class="title" id="screen-title">MyFit</h1>
     </header>
 
-    <!-- Дашборд -->
-    <section class="dashboard">
-      <p class="label">Баланс калорий</p>
-      <div class="balance">
-        <span class="balance-num" id="balance-num">0</span>
-        <span class="balance-unit">ккал</span>
-      </div>
+    <!-- ЭКРАН: ДНЕВНИК -->
+    <div class="screen active" id="screen-diary">
 
-      <div class="progress">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
+      <section class="dashboard">
+        <p class="label">Баланс калорий</p>
+        <div class="balance">
+          <span class="balance-num" id="balance-num">0</span>
+          <span class="balance-unit">ккал</span>
+        </div>
 
-      <div class="stats">
-        <div class="stat stat-eaten">
-          <p class="stat-label">🍽 Съедено</p>
-          <p class="stat-value"><span id="eaten-num">0</span> <span class="stat-unit">ккал</span></p>
+        <div class="progress">
+          <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div class="stat stat-burned">
-          <p class="stat-label">🔥 Сожжено</p>
-          <p class="stat-value"><span id="burned-num">0</span> <span class="stat-unit">ккал</span></p>
-        </div>
-      </div>
 
-      <!-- БЖУ -->
-      <div class="macros">
-        <div class="macro macro-p">
-          <p class="macro-label">Белки</p>
-          <p class="macro-value"><span id="macro-p">0</span><span class="macro-unit">г</span></p>
-          <p class="macro-target">из <span id="macro-p-target">100</span></p>
+        <div class="stats">
+          <div class="stat stat-eaten">
+            <p class="stat-label">🍽 Съедено</p>
+            <p class="stat-value"><span id="eaten-num">0</span> <span class="stat-unit">ккал</span></p>
+          </div>
+          <div class="stat stat-burned">
+            <p class="stat-label">🔥 Сожжено</p>
+            <p class="stat-value"><span id="burned-num">0</span> <span class="stat-unit">ккал</span></p>
+          </div>
         </div>
-        <div class="macro macro-f">
-          <p class="macro-label">Жиры</p>
-          <p class="macro-value"><span id="macro-f">0</span><span class="macro-unit">г</span></p>
-          <p class="macro-target">из <span id="macro-f-target">70</span></p>
-        </div>
-        <div class="macro macro-c">
-          <p class="macro-label">Углеводы</p>
-          <p class="macro-value"><span id="macro-c">0</span><span class="macro-unit">г</span></p>
-          <p class="macro-target">из <span id="macro-c-target">250</span></p>
-        </div>
-      </div>
 
-      <p class="goal-label">Цель: <span id="goal-kcal">2000</span> ккал/день</p>
-      <p class="goal-status" id="goal-status">Добавь продукт ниже ↓</p>
-    </section>
+        <div class="macros">
+          <div class="macro macro-p">
+            <p class="macro-label">Белки</p>
+            <p class="macro-value"><span id="macro-p">0</span><span class="macro-unit">г</span></p>
+            <p class="macro-target">из <span id="macro-p-target">100</span></p>
+          </div>
+          <div class="macro macro-f">
+            <p class="macro-label">Жиры</p>
+            <p class="macro-value"><span id="macro-f">0</span><span class="macro-unit">г</span></p>
+            <p class="macro-target">из <span id="macro-f-target">70</span></p>
+          </div>
+          <div class="macro macro-c">
+            <p class="macro-label">Углеводы</p>
+            <p class="macro-value"><span id="macro-c">0</span><span class="macro-unit">г</span></p>
+            <p class="macro-target">из <span id="macro-c-target">250</span></p>
+          </div>
+        </div>
 
-    <!-- Добавить еду -->
-    <section class="block">
-      <div class="block-header">
+        <p class="goal-label">Цель: <span id="goal-kcal">2000</span> ккал/день</p>
+        <p class="goal-status" id="goal-status">Добавь продукт ниже ↓</p>
+      </section>
+
+      <section class="block">
         <p class="block-title">🍎 Добавить продукт</p>
-        <button id="new-product-btn" class="btn-add">+ Новый продукт</button>
-      </div>
 
-      <!-- Форма «новый продукт» -->
-      <div id="new-product-form" class="custom-form hidden">
-        <p class="form-title">Новый продукт</p>
-        <input id="np-name" type="text" placeholder="Название" autocomplete="off">
-        <div class="form-row">
-          <input id="np-kcal" type="number" placeholder="ккал/100г" min="0">
-          <input id="np-protein" type="number" placeholder="Б, г" min="0" step="0.1">
+        <div class="search-wrap">
+          <input id="food-search" type="text" placeholder="Начни вводить: яблоко, рис, курица..." autocomplete="off">
+          <div id="food-suggest" class="suggest"></div>
         </div>
-        <div class="form-row">
-          <input id="np-fat" type="number" placeholder="Ж, г" min="0" step="0.1">
-          <input id="np-carbs" type="number" placeholder="У, г" min="0" step="0.1">
+
+        <div class="row">
+          <input id="food-grams" type="number" placeholder="вес, г" min="0">
+          <span id="food-calc" class="calc">= 0 ккал</span>
         </div>
-        <div class="form-actions">
-          <button id="np-cancel" class="btn-secondary">Отмена</button>
-          <button id="np-save" class="btn-primary">Сохранить</button>
+
+        <button id="add-food-btn" class="btn-primary">Добавить</button>
+
+        <div id="food-list" class="list"></div>
+      </section>
+
+      <section class="block">
+        <div class="block-header">
+          <p class="block-title">🏃 Добавить активность</p>
+          <button id="new-activity-btn" class="btn-add">+ Новая</button>
         </div>
-      </div>
 
-      <div class="search-wrap">
-        <input id="food-search" type="text" placeholder="Начни вводить: яблоко, рис, курица..." autocomplete="off">
-        <div id="food-suggest" class="suggest"></div>
-      </div>
-
-      <div class="row">
-        <input id="food-grams" type="number" placeholder="вес, г" min="0">
-        <span id="food-calc" class="calc">= 0 ккал</span>
-      </div>
-
-      <button id="add-food-btn" class="btn-primary">Добавить</button>
-
-      <div id="food-list" class="list"></div>
-    </section>
-
-    <!-- Добавить активность -->
-    <section class="block">
-      <div class="block-header">
-        <p class="block-title">🏃 Добавить активность</p>
-        <button id="new-activity-btn" class="btn-add">+ Новая активность</button>
-      </div>
-
-      <!-- Форма «новая активность» -->
-      <div id="new-activity-form" class="custom-form hidden">
-        <p class="form-title">Новая активность</p>
-        <input id="na-name" type="text" placeholder="Например: йога" autocomplete="off">
-        <input id="na-rate" type="number" placeholder="ккал в минуту" min="0" step="0.1">
-        <div class="form-actions">
-          <button id="na-cancel" class="btn-secondary">Отмена</button>
-          <button id="na-save" class="btn-primary">Сохранить</button>
+        <div id="new-activity-form" class="custom-form hidden">
+          <p class="form-title">Новая активность</p>
+          <input id="na-name" type="text" placeholder="Например: йога" autocomplete="off">
+          <input id="na-rate" type="number" placeholder="ккал в минуту" min="0" step="0.1">
+          <div class="form-actions">
+            <button id="na-cancel" class="btn-secondary">Отмена</button>
+            <button id="na-save" class="btn-primary">Сохранить</button>
+          </div>
         </div>
-      </div>
 
-      <div class="row">
-        <select id="act-type"></select>
-        <input id="act-min" type="number" placeholder="мин" min="0">
-      </div>
-
-      <button id="add-act-btn" class="btn-primary">Добавить</button>
-
-      <div id="act-list" class="list"></div>
-    </section>
-
-    <!-- Закрытие и сброс -->
-    <section class="block actions">
-      <button id="close-day-btn" class="btn-close-day" disabled>✓ Закрыть день</button>
-      <button id="reset-btn" class="btn-reset">↻ Сбросить день</button>
-    </section>
-
-    <!-- История -->
-    <section class="block history">
-      <div class="history-header">
-        <p class="block-title">📊 История</p>
-        <div class="period-switch">
-          <button class="period-btn active" data-period="7">Неделя</button>
-          <button class="period-btn" data-period="30">Месяц</button>
+        <div class="row">
+          <select id="act-type"></select>
+          <input id="act-min" type="number" placeholder="мин" min="0">
         </div>
-      </div>
 
-      <div id="history-chart" class="chart"></div>
-      <p id="history-empty" class="history-empty">Здесь появятся закрытые дни</p>
-    </section>
+        <button id="add-act-btn" class="btn-primary">Добавить</button>
 
-    <!-- Настройки -->
-    <section class="block settings">
-      <p class="block-title">⚙️ Настройки — дневные цели</p>
+        <div id="act-list" class="list"></div>
+      </section>
 
-      <div class="settings-row">
-        <label for="set-kcal">Калории</label>
-        <input id="set-kcal" type="number" min="0">
-        <span class="unit-label">ккал</span>
-      </div>
-      <div class="settings-row">
-        <label for="set-protein">Белки</label>
-        <input id="set-protein" type="number" min="0">
-        <span class="unit-label">г</span>
-      </div>
-      <div class="settings-row">
-        <label for="set-fat">Жиры</label>
-        <input id="set-fat" type="number" min="0">
-        <span class="unit-label">г</span>
-      </div>
-      <div class="settings-row">
-        <label for="set-carbs">Углеводы</label>
-        <input id="set-carbs" type="number" min="0">
-        <span class="unit-label">г</span>
-      </div>
+      <section class="block actions">
+        <button id="close-day-btn" class="btn-close-day" disabled>✓ Закрыть день</button>
+        <button id="reset-btn" class="btn-reset">↻ Сбросить день</button>
+      </section>
 
-      <button id="settings-save" class="btn-primary">Сохранить цели</button>
-      <p id="settings-status" class="settings-status"></p>
-    </section>
+    </div>
+
+    <!-- ЭКРАН: ИСТОРИЯ -->
+    <div class="screen" id="screen-history">
+
+      <section class="block history">
+        <div class="history-header">
+          <p class="block-title">📊 История</p>
+          <div class="period-switch">
+            <button class="period-btn active" data-period="7">Неделя</button>
+            <button class="period-btn" data-period="30">Месяц</button>
+          </div>
+        </div>
+
+        <div id="history-chart" class="chart"></div>
+        <p id="history-empty" class="history-empty">Здесь появятся закрытые дни.<br>Закрой день в Дневнике, чтобы записать результат.</p>
+      </section>
+
+    </div>
+
+    <!-- ЭКРАН: ПРОДУКТЫ -->
+    <div class="screen" id="screen-products">
+
+      <section class="block my-products">
+        <div class="block-header">
+          <p class="block-title">⭐ Мои продукты</p>
+          <span id="my-products-count" class="block-meta">0</span>
+        </div>
+
+        <button id="new-product-btn" class="btn-primary" style="margin-bottom: 12px;">+ Добавить продукт</button>
+
+        <div id="new-product-form" class="custom-form hidden">
+          <p class="form-title">Новый продукт</p>
+          <input id="np-name" type="text" placeholder="Название" autocomplete="off">
+          <div class="form-row">
+            <input id="np-kcal" type="number" placeholder="ккал/100г" min="0">
+            <input id="np-protein" type="number" placeholder="Б, г" min="0" step="0.1">
+          </div>
+          <div class="form-row">
+            <input id="np-fat" type="number" placeholder="Ж, г" min="0" step="0.1">
+            <input id="np-carbs" type="number" placeholder="У, г" min="0" step="0.1">
+          </div>
+          <div class="form-actions">
+            <button id="np-cancel" class="btn-secondary">Отмена</button>
+            <button id="np-save" class="btn-primary">Сохранить</button>
+          </div>
+        </div>
+
+        <div id="edit-product-form" class="custom-form hidden">
+          <p class="form-title">Редактировать продукт</p>
+          <input id="ep-name" type="text" placeholder="Название">
+          <div class="form-row">
+            <input id="ep-kcal" type="number" placeholder="ккал/100г" min="0">
+            <input id="ep-protein" type="number" placeholder="Б, г" min="0" step="0.1">
+          </div>
+          <div class="form-row">
+            <input id="ep-fat" type="number" placeholder="Ж, г" min="0" step="0.1">
+            <input id="ep-carbs" type="number" placeholder="У, г" min="0" step="0.1">
+          </div>
+          <div class="form-actions">
+            <button id="ep-cancel" class="btn-secondary">Отмена</button>
+            <button id="ep-save" class="btn-primary">Сохранить</button>
+          </div>
+        </div>
+
+        <div id="my-products-list" class="my-list"></div>
+        <p id="my-products-empty" class="my-empty">Здесь появятся продукты, которые ты добавишь через кнопку выше</p>
+      </section>
+
+    </div>
+
+    <!-- ЭКРАН: НАСТРОЙКИ -->
+    <div class="screen" id="screen-settings">
+
+      <section class="block settings">
+        <p class="block-title">⚙️ Дневные цели</p>
+
+        <div class="settings-row">
+          <label for="set-kcal">Калории</label>
+          <input id="set-kcal" type="number" min="0">
+          <span class="unit-label">ккал</span>
+        </div>
+        <div class="settings-row">
+          <label for="set-protein">Белки</label>
+          <input id="set-protein" type="number" min="0">
+          <span class="unit-label">г</span>
+        </div>
+        <div class="settings-row">
+          <label for="set-fat">Жиры</label>
+          <input id="set-fat" type="number" min="0">
+          <span class="unit-label">г</span>
+        </div>
+        <div class="settings-row">
+          <label for="set-carbs">Углеводы</label>
+          <input id="set-carbs" type="number" min="0">
+          <span class="unit-label">г</span>
+        </div>
+
+        <button id="settings-save" class="btn-primary">Сохранить цели</button>
+        <p id="settings-status" class="settings-status"></p>
+      </section>
+
+      <section class="block">
+        <p class="block-title">О приложении</p>
+        <p style="font-size: 13px; color: #5f5e5a; line-height: 1.6;">
+          MyFit — простой трекер калорий и активности.<br>
+          Все данные хранятся локально на твоём устройстве.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- НАВИГАЦИЯ -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="diary">
+        <span class="tab-icon">🏠</span>
+        <span class="tab-label">Дневник</span>
+      </button>
+      <button class="tab" data-tab="history">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">История</span>
+      </button>
+      <button class="tab" data-tab="products">
+        <span class="tab-icon">⭐</span>
+        <span class="tab-label">Продукты</span>
+      </button>
+      <button class="tab" data-tab="settings">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Настройки</span>
+      </button>
+    </nav>
 
   </div>
 
   <script src="products.js"></script>
   <script src="app.js"></script>
 
-  <!-- Регистрация Service Worker для PWA -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

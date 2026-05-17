@@ -75,6 +75,14 @@ const setCarbs    = $('set-carbs');
 const settingsSaveBtn = $('settings-save');
 const settingsStatus  = $('settings-status');
 
+const myProductsList  = $('my-products-list');
+const myProductsEmpty = $('my-products-empty');
+const myProductsCount = $('my-products-count');
+const editProductForm = $('edit-product-form');
+
+// Индекс редактируемого продукта (null = форма закрыта)
+let editingProductIndex = null;
+
 // ============================================
 // 1. ДАТА
 // ============================================
@@ -104,170 +112,40 @@ function getAllActivities() {
 }
 
 // ============================================
-// 3. ПОИСК ПРОДУКТОВ — локально + Open Food Facts
+// 3. ПОИСК ПРОДУКТОВ
 // ============================================
-
-let offSearchTimer = null;     // таймер для debounce
-let offSearchSeq = 0;          // счётчик запросов (защита от устаревших ответов)
-let offResultsCache = [];      // последние результаты OFF
-
-// Главная функция: показывает локальные результаты сразу
-// и запускает поиск в OFF с задержкой
 function showSuggestions(query) {
   const q = query.trim().toLowerCase();
-
-  // Сбрасываем предыдущий таймер
-  if (offSearchTimer) {
-    clearTimeout(offSearchTimer);
-    offSearchTimer = null;
-  }
 
   if (!q) {
     foodSuggest.style.display = 'none';
     return;
   }
 
-  // Локальные результаты (мгновенно)
-  const localMatches = getAllProducts()
+  const matches = getAllProducts()
     .filter(p => p.name.toLowerCase().includes(q))
     .slice(0, 6);
 
-  renderSuggestions(localMatches, [], q);
-
-  // Если запрос длиннее 3 символов — ищем в OFF через 500мс
-  if (q.length >= 3) {
-    offSearchTimer = setTimeout(() => {
-      searchOpenFoodFacts(q);
-    }, 500);
-  }
-}
-
-// Запрос в Open Food Facts API
-async function searchOpenFoodFacts(query) {
-  const mySeq = ++offSearchSeq; // запоминаем номер этого запроса
-
-  // Показываем индикатор загрузки
-  const localMatches = getAllProducts()
-    .filter(p => p.name.toLowerCase().includes(query))
-    .slice(0, 6);
-  renderSuggestions(localMatches, [], query, true);
-
-  try {
-    // Endpoint: search v1 (поддерживает full text)
-    // Параметры: search_terms — что искать, countries_tags=poland — фильтр по Польше,
-    // page_size=10 — сколько вернуть, fields — только нужные поля
-    const url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
-      'search_terms=' + encodeURIComponent(query) +
-      '&tagtype_0=countries&tag_contains_0=contains&tag_0=poland' +
-      '&search_simple=1' +
-      '&action=process' +
-      '&page_size=10' +
-      '&fields=product_name,nutriments,brands' +
-      '&json=1';
-
-    const response = await fetch(url);
-
-    // Если был сделан более новый запрос — игнорируем этот ответ
-    if (mySeq !== offSearchSeq) return;
-
-    if (!response.ok) throw new Error('Ошибка сети');
-
-    const data = await response.json();
-
-    // Парсим продукты, оставляем только те, где есть калории
-    const offProducts = (data.products || [])
-      .filter(p => p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'])
-      .map(p => ({
-        name: p.brands
-          ? `${p.product_name} (${p.brands.split(',')[0].trim()})`
-          : p.product_name,
-        kcal100: Math.round(p.nutriments['energy-kcal_100g']),
-        protein: Math.round((p.nutriments.proteins_100g       || 0) * 10) / 10,
-        fat:     Math.round((p.nutriments.fat_100g            || 0) * 10) / 10,
-        carbs:   Math.round((p.nutriments.carbohydrates_100g  || 0) * 10) / 10,
-        fromOFF: true
-      }))
-      .slice(0, 6);
-
-    offResultsCache = offProducts;
-
-    // Перерисовываем подсказки — локальные + OFF
-    renderSuggestions(localMatches, offProducts, query, false);
-
-  } catch (err) {
-    if (mySeq !== offSearchSeq) return;
-    console.warn('OFF не отвечает:', err);
-    renderSuggestions(localMatches, [], query, false, true);
-  }
-}
-
-// Отрисовка подсказок (локальные + OFF + статус)
-// loading: показывать ли «Идёт поиск...»
-// error: показывать ли «ошибка сети»
-function renderSuggestions(localMatches, offMatches, query, loading = false, error = false) {
-  let html = '';
-
-  // Локальные результаты
-  if (localMatches.length > 0) {
-    html += localMatches.map(p => `
-      <div class="suggest-item" data-source="local" data-name="${escapeHtml(p.name)}">
-        <span>${p.custom ? '<span class="custom-mark">★</span>' : ''}${escapeHtml(p.name)}</span>
-        <span class="suggest-meta">${p.kcal100} ккал/100г</span>
-      </div>
-    `).join('');
+  if (matches.length === 0) {
+    foodSuggest.innerHTML = '<div class="suggest-empty">Ничего не найдено</div>';
+    foodSuggest.style.display = 'block';
+    return;
   }
 
-  // Статус поиска в OFF
-  if (loading) {
-    html += '<div class="suggest-status">🌐 Ищу в Open Food Facts...</div>';
-  } else if (error) {
-    html += '<div class="suggest-status">⚠️ OFF недоступен</div>';
-  } else if (offMatches.length > 0) {
-    // Разделитель, если были и локальные, и OFF
-    if (localMatches.length > 0) {
-      html += '<div class="suggest-section">Из Open Food Facts</div>';
-    }
-    html += offMatches.map((p, i) => `
-      <div class="suggest-item" data-source="off" data-i="${i}">
-        <span><span class="off-mark">🌐</span>${escapeHtml(p.name)}</span>
-        <span class="suggest-meta">${p.kcal100} ккал/100г</span>
-      </div>
-    `).join('');
-  }
+  foodSuggest.innerHTML = matches.map(p => `
+    <div class="suggest-item" data-name="${escapeHtml(p.name)}">
+      <span>${p.custom ? '<span class="custom-mark">★</span>' : ''}${escapeHtml(p.name)}</span>
+      <span class="suggest-meta">${p.kcal100} ккал/100г</span>
+    </div>
+  `).join('');
 
-  // Если совсем ничего не нашли
-  if (!html) {
-    html = '<div class="suggest-empty">Ничего не найдено</div>';
-  }
-
-  foodSuggest.innerHTML = html;
   foodSuggest.style.display = 'block';
 
-  // Клик по подсказке
   foodSuggest.querySelectorAll('.suggest-item').forEach(item => {
     item.onclick = () => {
-      if (item.dataset.source === 'local') {
-        const name = item.dataset.name;
-        selectedProduct = getAllProducts().find(p => p.name === name);
-      } else {
-        // Продукт из OFF — добавляем в локальную базу как «свой»
-        const idx = parseInt(item.dataset.i);
-        const p = offResultsCache[idx];
-        // Проверим, нет ли уже такого
-        const exists = customProducts.some(cp => cp.name === p.name);
-        if (!exists) {
-          customProducts.push({
-            name: p.name,
-            kcal100: p.kcal100,
-            protein: p.protein,
-            fat: p.fat,
-            carbs: p.carbs
-          });
-          saveCustomProducts();
-        }
-        selectedProduct = p;
-      }
-      foodSearch.value = selectedProduct.name;
+      const name = item.dataset.name;
+      selectedProduct = getAllProducts().find(p => p.name === name);
+      foodSearch.value = name;
       foodSuggest.style.display = 'none';
       updateCalcPreview();
       foodGrams.focus();
@@ -391,7 +269,126 @@ function saveNewProduct() {
   customProducts.push({ name, kcal100, protein, fat, carbs });
   saveCustomProducts();
   closeProductForm();
+  renderMyProducts();
   alert('Продукт добавлен в твою базу');
+}
+
+// ============================================
+// МОИ ПРОДУКТЫ — список и редактирование
+// ============================================
+
+// Отрисовка списка
+function renderMyProducts() {
+  myProductsCount.textContent = customProducts.length;
+
+  if (customProducts.length === 0) {
+    myProductsList.classList.add('hidden');
+    myProductsEmpty.classList.remove('hidden');
+    return;
+  }
+
+  myProductsList.classList.remove('hidden');
+  myProductsEmpty.classList.add('hidden');
+
+  myProductsList.innerHTML = customProducts.map((p, i) => `
+    <div class="my-item">
+      <div class="my-item-info">
+        <div class="my-item-name">${escapeHtml(p.name)}</div>
+        <div class="my-item-meta">
+          ${p.kcal100} ккал ·
+          Б ${p.protein || 0}г ·
+          Ж ${p.fat || 0}г ·
+          У ${p.carbs || 0}г
+        </div>
+      </div>
+      <div class="my-item-actions">
+        <button class="my-item-btn edit" data-i="${i}" title="Редактировать">✏️</button>
+        <button class="my-item-btn delete" data-i="${i}" title="Удалить">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Привязка событий к кнопкам
+  myProductsList.querySelectorAll('.my-item-btn.edit').forEach(btn => {
+    btn.onclick = () => openEditProductForm(parseInt(btn.dataset.i));
+  });
+  myProductsList.querySelectorAll('.my-item-btn.delete').forEach(btn => {
+    btn.onclick = () => deleteMyProduct(parseInt(btn.dataset.i));
+  });
+}
+
+// Открыть форму редактирования
+function openEditProductForm(index) {
+  editingProductIndex = index;
+  const p = customProducts[index];
+
+  $('ep-name').value    = p.name;
+  $('ep-kcal').value    = p.kcal100;
+  $('ep-protein').value = p.protein || '';
+  $('ep-fat').value     = p.fat || '';
+  $('ep-carbs').value   = p.carbs || '';
+
+  editProductForm.classList.remove('hidden');
+  $('ep-name').focus();
+
+  // Прокрутим к форме, чтобы её было видно
+  editProductForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Закрыть форму редактирования
+function closeEditProductForm() {
+  editingProductIndex = null;
+  editProductForm.classList.add('hidden');
+  ['ep-name', 'ep-kcal', 'ep-protein', 'ep-fat', 'ep-carbs'].forEach(id => $(id).value = '');
+}
+
+// Сохранить изменения
+function saveEditedProduct() {
+  if (editingProductIndex === null) return;
+
+  const name    = $('ep-name').value.trim();
+  const kcal100 = parseFloat($('ep-kcal').value);
+  const protein = parseFloat($('ep-protein').value) || 0;
+  const fat     = parseFloat($('ep-fat').value)     || 0;
+  const carbs   = parseFloat($('ep-carbs').value)   || 0;
+
+  if (!name) {
+    alert('Укажи название');
+    return;
+  }
+  if (!kcal100 || kcal100 < 0) {
+    alert('Укажи калорийность');
+    return;
+  }
+
+  // Проверка дубликата: имя совпадает с другим продуктом (не с собой)
+  const lowerName = name.toLowerCase();
+  const conflict = getAllProducts().some((p, idx) => {
+    // Если это сам редактируемый продукт — пропускаем
+    if (p.custom && customProducts[editingProductIndex].name === p.name) return false;
+    return p.name.toLowerCase() === lowerName;
+  });
+  if (conflict) {
+    alert('Продукт с таким названием уже есть');
+    return;
+  }
+
+  // Обновляем продукт
+  customProducts[editingProductIndex] = { name, kcal100, protein, fat, carbs };
+  saveCustomProducts();
+  closeEditProductForm();
+  renderMyProducts();
+  render(); // обновим списки еды, если этот продукт уже добавлен в дневник
+}
+
+// Удалить свой продукт
+function deleteMyProduct(index) {
+  const p = customProducts[index];
+  if (!confirm(`Удалить «${p.name}» из твоей базы?\n\nЗаписи в дневнике питания останутся.`)) return;
+
+  customProducts.splice(index, 1);
+  saveCustomProducts();
+  renderMyProducts();
 }
 
 // Своя активность
@@ -729,6 +726,10 @@ newActivityBtn.addEventListener('click', openActivityForm);
 $('na-cancel').addEventListener('click', closeActivityForm);
 $('na-save').addEventListener('click', saveNewActivity);
 
+// Форма редактирования «моих продуктов»
+$('ep-cancel').addEventListener('click', closeEditProductForm);
+$('ep-save').addEventListener('click', saveEditedProduct);
+
 // Настройки
 settingsSaveBtn.addEventListener('click', saveSettings);
 
@@ -743,6 +744,42 @@ document.querySelectorAll('.period-btn').forEach(btn => {
 });
 
 // ============================================
+// ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+// ============================================
+
+// Названия экранов для заголовка в шапке
+const TAB_TITLES = {
+  diary:    'MyFit',
+  history:  'История',
+  products: 'Мои продукты',
+  settings: 'Настройки'
+};
+
+function switchTab(tabName) {
+  // Скрыть все экраны и снять активность с кнопок
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  // Показать нужный экран
+  const screen = document.getElementById('screen-' + tabName);
+  if (screen) screen.classList.add('active');
+
+  // Подсветить кнопку
+  const btn = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  if (btn) btn.classList.add('active');
+
+  // Обновить заголовок
+  document.getElementById('screen-title').textContent = TAB_TITLES[tabName] || 'MyFit';
+
+  // Прокрутить страницу наверх
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+// ============================================
 // 15. СТАРТ
 // ============================================
 showTodayDate();
@@ -754,4 +791,5 @@ load();
 
 refillActivitySelect();
 loadGoalsIntoForm();
+renderMyProducts();
 render();
