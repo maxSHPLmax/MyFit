@@ -324,6 +324,30 @@ body {
   margin-right: 4px;
 }
 
+/* Значок «из Open Food Facts» */
+.off-mark {
+  font-size: 11px;
+  margin-right: 4px;
+}
+
+/* Разделитель «Из Open Food Facts» */
+.suggest-section {
+  padding: 6px 10px;
+  font-size: 10px;
+  color: #888780;
+  background: #f5f5f0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Статус поиска (загрузка / ошибка) */
+.suggest-status {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #5f5e5a;
+  font-style: italic;
+}
+
 /* Поля ввода */
 .row {
   display: flex;

@@ -4,7 +4,7 @@
 // Каждый раз, когда меняешь файлы — увеличивай VERSION,
 // чтобы пользователи получили свежую версию.
 
-const VERSION = 'myfit-v1';
+const VERSION = 'myfit-v2';
 
 // Какие файлы кешировать при первой установке
 const FILES_TO_CACHE = [
@@ -60,6 +60,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Обрабатываем только GET-запросы
   if (event.request.method !== 'GET') return;
+
+  // Запросы к Open Food Facts не трогаем — пусть идут напрямую в сеть
+  const url = new URL(event.request.url);
+  if (url.hostname.endsWith('openfoodfacts.org')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

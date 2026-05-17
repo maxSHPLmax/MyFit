@@ -104,40 +104,170 @@ function getAllActivities() {
 }
 
 // ============================================
-// 3. ПОИСК ПРОДУКТОВ
+// 3. ПОИСК ПРОДУКТОВ — локально + Open Food Facts
 // ============================================
+
+let offSearchTimer = null;     // таймер для debounce
+let offSearchSeq = 0;          // счётчик запросов (защита от устаревших ответов)
+let offResultsCache = [];      // последние результаты OFF
+
+// Главная функция: показывает локальные результаты сразу
+// и запускает поиск в OFF с задержкой
 function showSuggestions(query) {
   const q = query.trim().toLowerCase();
+
+  // Сбрасываем предыдущий таймер
+  if (offSearchTimer) {
+    clearTimeout(offSearchTimer);
+    offSearchTimer = null;
+  }
 
   if (!q) {
     foodSuggest.style.display = 'none';
     return;
   }
 
-  const matches = getAllProducts()
+  // Локальные результаты (мгновенно)
+  const localMatches = getAllProducts()
     .filter(p => p.name.toLowerCase().includes(q))
     .slice(0, 6);
 
-  if (matches.length === 0) {
-    foodSuggest.innerHTML = '<div class="suggest-empty">Ничего не найдено</div>';
-    foodSuggest.style.display = 'block';
-    return;
+  renderSuggestions(localMatches, [], q);
+
+  // Если запрос длиннее 3 символов — ищем в OFF через 500мс
+  if (q.length >= 3) {
+    offSearchTimer = setTimeout(() => {
+      searchOpenFoodFacts(q);
+    }, 500);
+  }
+}
+
+// Запрос в Open Food Facts API
+async function searchOpenFoodFacts(query) {
+  const mySeq = ++offSearchSeq; // запоминаем номер этого запроса
+
+  // Показываем индикатор загрузки
+  const localMatches = getAllProducts()
+    .filter(p => p.name.toLowerCase().includes(query))
+    .slice(0, 6);
+  renderSuggestions(localMatches, [], query, true);
+
+  try {
+    // Endpoint: search v1 (поддерживает full text)
+    // Параметры: search_terms — что искать, countries_tags=poland — фильтр по Польше,
+    // page_size=10 — сколько вернуть, fields — только нужные поля
+    const url = 'https://world.openfoodfacts.org/cgi/search.pl?' +
+      'search_terms=' + encodeURIComponent(query) +
+      '&tagtype_0=countries&tag_contains_0=contains&tag_0=poland' +
+      '&search_simple=1' +
+      '&action=process' +
+      '&page_size=10' +
+      '&fields=product_name,nutriments,brands' +
+      '&json=1';
+
+    const response = await fetch(url);
+
+    // Если был сделан более новый запрос — игнорируем этот ответ
+    if (mySeq !== offSearchSeq) return;
+
+    if (!response.ok) throw new Error('Ошибка сети');
+
+    const data = await response.json();
+
+    // Парсим продукты, оставляем только те, где есть калории
+    const offProducts = (data.products || [])
+      .filter(p => p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'])
+      .map(p => ({
+        name: p.brands
+          ? `${p.product_name} (${p.brands.split(',')[0].trim()})`
+          : p.product_name,
+        kcal100: Math.round(p.nutriments['energy-kcal_100g']),
+        protein: Math.round((p.nutriments.proteins_100g       || 0) * 10) / 10,
+        fat:     Math.round((p.nutriments.fat_100g            || 0) * 10) / 10,
+        carbs:   Math.round((p.nutriments.carbohydrates_100g  || 0) * 10) / 10,
+        fromOFF: true
+      }))
+      .slice(0, 6);
+
+    offResultsCache = offProducts;
+
+    // Перерисовываем подсказки — локальные + OFF
+    renderSuggestions(localMatches, offProducts, query, false);
+
+  } catch (err) {
+    if (mySeq !== offSearchSeq) return;
+    console.warn('OFF не отвечает:', err);
+    renderSuggestions(localMatches, [], query, false, true);
+  }
+}
+
+// Отрисовка подсказок (локальные + OFF + статус)
+// loading: показывать ли «Идёт поиск...»
+// error: показывать ли «ошибка сети»
+function renderSuggestions(localMatches, offMatches, query, loading = false, error = false) {
+  let html = '';
+
+  // Локальные результаты
+  if (localMatches.length > 0) {
+    html += localMatches.map(p => `
+      <div class="suggest-item" data-source="local" data-name="${escapeHtml(p.name)}">
+        <span>${p.custom ? '<span class="custom-mark">★</span>' : ''}${escapeHtml(p.name)}</span>
+        <span class="suggest-meta">${p.kcal100} ккал/100г</span>
+      </div>
+    `).join('');
   }
 
-  foodSuggest.innerHTML = matches.map(p => `
-    <div class="suggest-item" data-name="${escapeHtml(p.name)}">
-      <span>${p.custom ? '<span class="custom-mark">★</span>' : ''}${escapeHtml(p.name)}</span>
-      <span class="suggest-meta">${p.kcal100} ккал/100г</span>
-    </div>
-  `).join('');
+  // Статус поиска в OFF
+  if (loading) {
+    html += '<div class="suggest-status">🌐 Ищу в Open Food Facts...</div>';
+  } else if (error) {
+    html += '<div class="suggest-status">⚠️ OFF недоступен</div>';
+  } else if (offMatches.length > 0) {
+    // Разделитель, если были и локальные, и OFF
+    if (localMatches.length > 0) {
+      html += '<div class="suggest-section">Из Open Food Facts</div>';
+    }
+    html += offMatches.map((p, i) => `
+      <div class="suggest-item" data-source="off" data-i="${i}">
+        <span><span class="off-mark">🌐</span>${escapeHtml(p.name)}</span>
+        <span class="suggest-meta">${p.kcal100} ккал/100г</span>
+      </div>
+    `).join('');
+  }
 
+  // Если совсем ничего не нашли
+  if (!html) {
+    html = '<div class="suggest-empty">Ничего не найдено</div>';
+  }
+
+  foodSuggest.innerHTML = html;
   foodSuggest.style.display = 'block';
 
+  // Клик по подсказке
   foodSuggest.querySelectorAll('.suggest-item').forEach(item => {
     item.onclick = () => {
-      const name = item.dataset.name;
-      selectedProduct = getAllProducts().find(p => p.name === name);
-      foodSearch.value = name;
+      if (item.dataset.source === 'local') {
+        const name = item.dataset.name;
+        selectedProduct = getAllProducts().find(p => p.name === name);
+      } else {
+        // Продукт из OFF — добавляем в локальную базу как «свой»
+        const idx = parseInt(item.dataset.i);
+        const p = offResultsCache[idx];
+        // Проверим, нет ли уже такого
+        const exists = customProducts.some(cp => cp.name === p.name);
+        if (!exists) {
+          customProducts.push({
+            name: p.name,
+            kcal100: p.kcal100,
+            protein: p.protein,
+            fat: p.fat,
+            carbs: p.carbs
+          });
+          saveCustomProducts();
+        }
+        selectedProduct = p;
+      }
+      foodSearch.value = selectedProduct.name;
       foodSuggest.style.display = 'none';
       updateCalcPreview();
       foodGrams.focus();
