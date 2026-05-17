@@ -83,14 +83,29 @@
       <div id="act-list" class="list"></div>
     </section>
 
-    <!-- Сброс -->
-    <section class="block reset">
+    <!-- Закрытие дня + сброс -->
+    <section class="block actions">
+      <button id="close-day-btn" class="btn-close-day" disabled>✓ Закрыть день</button>
       <button id="reset-btn" class="btn-reset">↻ Сбросить день</button>
+    </section>
+
+    <!-- История -->
+    <section class="block history">
+      <div class="history-header">
+        <p class="block-title">📊 История</p>
+        <div class="period-switch">
+          <button class="period-btn active" data-period="7">Неделя</button>
+          <button class="period-btn" data-period="30">Месяц</button>
+        </div>
+      </div>
+
+      <div id="history-chart" class="chart"></div>
+      <p id="history-empty" class="history-empty">Здесь появятся закрытые дни</p>
     </section>
 
   </div>
 
-  <!-- Скрипты: сначала база данных, потом логика -->
+  <!-- Скрипты -->
   <script src="products.js"></script>
   <script src="app.js"></script>
 

@@ -3,15 +3,19 @@
 // ============================================
 
 // --- Настройки ---
-const DAILY_GOAL = 2000; // дневная цель в ккал
+const DAILY_GOAL = 2000;          // дневная цель в ккал
+const STORAGE_KEY = 'myfit-data'; // текущий день
+const HISTORY_KEY = 'myfit-history'; // архив закрытых дней
 
-// --- Состояние приложения (что добавлено за день) ---
-let foods = [];           // массив съеденных продуктов
-let activities = [];      // массив активностей
-let selectedProduct = null; // выбранный продукт из подсказок
+// --- Состояние приложения ---
+let foods = [];           // продукты текущего дня
+let activities = [];      // активности текущего дня
+let history = [];         // массив закрытых дней
+let selectedProduct = null;
+let chartPeriod = 7;      // 7 или 30 — сколько дней показывать
 
-// --- Получаем ссылки на элементы страницы ---
-const $ = (id) => document.getElementById(id); // короткий хелпер
+// --- Ссылки на элементы ---
+const $ = (id) => document.getElementById(id);
 
 const dateEl       = $('today-date');
 const balanceNumEl = $('balance-num');
@@ -32,7 +36,11 @@ const actMin       = $('act-min');
 const actListEl    = $('act-list');
 const addActBtn    = $('add-act-btn');
 
+const closeDayBtn  = $('close-day-btn');
 const resetBtn     = $('reset-btn');
+
+const historyChart = $('history-chart');
+const historyEmpty = $('history-empty');
 
 // ============================================
 // 1. ДАТА
@@ -49,30 +57,24 @@ function showTodayDate() {
 // ============================================
 // 2. ПОИСК ПРОДУКТОВ
 // ============================================
-
-// Показать подсказки при вводе текста
 function showSuggestions(query) {
   const q = query.trim().toLowerCase();
 
-  // Если пусто — скрываем
   if (!q) {
     foodSuggest.style.display = 'none';
     return;
   }
 
-  // Ищем совпадения (не больше 6 штук)
   const matches = PRODUCTS
     .filter(p => p.name.toLowerCase().includes(q))
     .slice(0, 6);
 
-  // Ничего не нашли
   if (matches.length === 0) {
     foodSuggest.innerHTML = '<div class="suggest-empty">Ничего не найдено</div>';
     foodSuggest.style.display = 'block';
     return;
   }
 
-  // Строим HTML списка подсказок
   foodSuggest.innerHTML = matches.map(p => `
     <div class="suggest-item" data-name="${escapeHtml(p.name)}">
       <span>${escapeHtml(p.name)}</span>
@@ -82,7 +84,6 @@ function showSuggestions(query) {
 
   foodSuggest.style.display = 'block';
 
-  // Вешаем клик на каждую подсказку
   foodSuggest.querySelectorAll('.suggest-item').forEach(item => {
     item.onclick = () => {
       const name = item.dataset.name;
@@ -98,7 +99,6 @@ function showSuggestions(query) {
 // ============================================
 // 3. ПРЕДВАРИТЕЛЬНЫЙ ПОДСЧЁТ КАЛОРИЙ
 // ============================================
-// Показывает, сколько ккал будет, когда вводишь граммы
 function updateCalcPreview() {
   const grams = parseFloat(foodGrams.value);
   if (selectedProduct && grams > 0) {
@@ -126,23 +126,19 @@ function addFood() {
     return;
   }
 
-  // Считаем калории
   const kcal = (selectedProduct.kcal100 * grams) / 100;
 
-  // Добавляем в массив
   foods.push({
     name: selectedProduct.name,
     grams: grams,
     kcal: kcal
   });
 
-  // Чистим поля
   foodSearch.value = '';
   foodGrams.value = '';
   selectedProduct = null;
   updateCalcPreview();
 
-  // Перерисовываем
   render();
 }
 
@@ -150,7 +146,7 @@ function addFood() {
 // 5. ДОБАВЛЕНИЕ АКТИВНОСТИ
 // ============================================
 function addActivity() {
-  const rate = parseFloat(actType.value); // ккал в минуту
+  const rate = parseFloat(actType.value);
   const name = actType.options[actType.selectedIndex].text.split(' (')[0];
   const min  = parseFloat(actMin.value);
 
@@ -170,35 +166,30 @@ function addActivity() {
 }
 
 // ============================================
-// 6. ОТРИСОВКА (главный пересчёт всего экрана)
+// 6. ОТРИСОВКА
 // ============================================
 function render() {
-  save(); // сохраняем данные при каждом обновлении
+  save();
 
-  // Считаем суммы
   const eaten   = foods.reduce((sum, f) => sum + f.kcal, 0);
   const burned  = activities.reduce((sum, a) => sum + a.kcal, 0);
   const balance = eaten - burned;
 
-  // Обновляем числа на экране
   eatenNumEl.textContent   = Math.round(eaten);
   burnedNumEl.textContent  = Math.round(burned);
   balanceNumEl.textContent = Math.round(balance);
 
-  // Прогресс-бар
   const percent = Math.min(100, Math.max(0, (balance / DAILY_GOAL) * 100));
   progressBar.style.width = percent + '%';
 
-  // Цвет в зависимости от близости к цели
   if (balance > DAILY_GOAL) {
-    progressBar.style.background = '#e24b4a';      // красный — превышение
+    progressBar.style.background = '#e24b4a';
   } else if (balance > DAILY_GOAL * 0.8) {
-    progressBar.style.background = '#ef9f27';      // оранжевый — близко к цели
+    progressBar.style.background = '#ef9f27';
   } else {
-    progressBar.style.background = '#1d9e75';      // зелёный
+    progressBar.style.background = '#1d9e75';
   }
 
-  // Сообщение о статусе цели
   const remaining = DAILY_GOAL - balance;
   if (foods.length === 0 && activities.length === 0) {
     goalStatus.textContent = 'Добавь продукт ниже ↓';
@@ -208,12 +199,12 @@ function render() {
     goalStatus.textContent = `Цель достигнута! Превышение: ${Math.round(-remaining)} ккал`;
   }
 
-  // Списки
   renderFoodList();
   renderActivityList();
+  updateCloseDayBtn();
+  renderHistory();
 }
 
-// Список продуктов
 function renderFoodList() {
   foodListEl.innerHTML = foods.map((f, i) => `
     <div class="list-item">
@@ -227,7 +218,6 @@ function renderFoodList() {
     </div>
   `).join('');
 
-  // Кнопки удаления
   foodListEl.querySelectorAll('.btn-remove').forEach(btn => {
     btn.onclick = () => {
       foods.splice(parseInt(btn.dataset.i), 1);
@@ -236,7 +226,6 @@ function renderFoodList() {
   });
 }
 
-// Список активностей
 function renderActivityList() {
   actListEl.innerHTML = activities.map((a, i) => `
     <div class="list-item">
@@ -259,32 +248,111 @@ function renderActivityList() {
 }
 
 // ============================================
-// 7. СОХРАНЕНИЕ И ЗАГРУЗКА (LocalStorage)
+// 7. ЗАКРЫТИЕ ДНЯ
 // ============================================
 
-// Ключ, под которым храним данные в браузере
-const STORAGE_KEY = 'myfit-data';
+function updateCloseDayBtn() {
+  const hasData = foods.length > 0 || activities.length > 0;
+  closeDayBtn.disabled = !hasData;
+}
 
-// Сохранить текущее состояние
+function closeDay() {
+  if (foods.length === 0 && activities.length === 0) return;
+
+  if (!confirm('Закрыть день? Текущие записи попадут в историю.')) return;
+
+  const eaten   = foods.reduce((sum, f) => sum + f.kcal, 0);
+  const burned  = activities.reduce((sum, a) => sum + a.kcal, 0);
+  const balance = eaten - burned;
+
+  // ISO-дата YYYY-MM-DD — удобна для сортировки
+  const today = new Date();
+  const isoDate = today.getFullYear() + '-' +
+                  String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(today.getDate()).padStart(2, '0');
+
+  // Если запись за сегодня уже есть — заменяем
+  history = history.filter(h => h.date !== isoDate);
+  history.push({
+    date: isoDate,
+    eaten: Math.round(eaten),
+    burned: Math.round(burned),
+    balance: Math.round(balance)
+  });
+
+  // Сортируем по дате (старые → новые)
+  history.sort((a, b) => a.date.localeCompare(b.date));
+
+  // Чистим текущий день
+  foods = [];
+  activities = [];
+
+  saveHistory();
+  render();
+}
+
+// ============================================
+// 8. ИСТОРИЯ — отрисовка графика
+// ============================================
+function renderHistory() {
+  if (history.length === 0) {
+    historyChart.classList.add('hidden');
+    historyEmpty.classList.add('show');
+    return;
+  }
+
+  historyChart.classList.remove('hidden');
+  historyEmpty.classList.remove('show');
+
+  // Берём последние N дней из истории
+  const days = history.slice(-chartPeriod);
+
+  // Максимум для масштабирования (не меньше дневной цели)
+  const maxValue = Math.max(DAILY_GOAL, ...days.map(d => d.balance));
+
+  historyChart.innerHTML = days.map(d => {
+    const value = Math.max(0, d.balance);
+    const heightPct = (value / maxValue) * 100;
+
+    let cls = 'chart-bar-fill';
+    if (d.balance > DAILY_GOAL) cls += ' over';
+    else if (d.balance > DAILY_GOAL * 0.8) cls += ' near';
+    else if (d.balance <= 0) cls += ' empty';
+
+    // Короткая подпись даты — день.месяц
+    const dateObj = new Date(d.date);
+    const label = dateObj.getDate() + '.' + String(dateObj.getMonth() + 1).padStart(2, '0');
+
+    return `
+      <div class="chart-bar" title="${d.date}: ${d.balance} ккал (съедено ${d.eaten}, сожжено ${d.burned})">
+        <span class="chart-bar-value">${d.balance}</span>
+        <div class="${cls}" style="height: ${heightPct}%"></div>
+        <span class="chart-bar-label">${label}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================
+// 9. СОХРАНЕНИЕ И ЗАГРУЗКА
+// ============================================
+
 function save() {
   const data = {
-    date: new Date().toDateString(), // дата сохранения
+    date: new Date().toDateString(),
     foods: foods,
     activities: activities
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-// Загрузить состояние при старте
 function load() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return; // ничего не сохранено — выходим
+  if (!raw) return;
 
   try {
     const data = JSON.parse(raw);
 
-    // Если сохранённые данные — за другой день, не загружаем
-    // (каждый новый день начинаем с чистого листа)
     if (data.date !== new Date().toDateString()) {
       localStorage.removeItem(STORAGE_KEY);
       return;
@@ -293,12 +361,27 @@ function load() {
     foods = data.foods || [];
     activities = data.activities || [];
   } catch (e) {
-    console.error('Не удалось загрузить данные:', e);
+    console.error('Не удалось загрузить текущий день:', e);
+  }
+}
+
+function saveHistory() {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function loadHistory() {
+  const raw = localStorage.getItem(HISTORY_KEY);
+  if (!raw) return;
+  try {
+    history = JSON.parse(raw) || [];
+  } catch (e) {
+    console.error('Не удалось загрузить историю:', e);
+    history = [];
   }
 }
 
 // ============================================
-// 8. УТИЛИТА: защита от HTML в названиях
+// 10. УТИЛИТА
 // ============================================
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
@@ -307,10 +390,8 @@ function escapeHtml(str) {
 }
 
 // ============================================
-// 9. ПРИВЯЗКА СОБЫТИЙ
+// 11. ПРИВЯЗКА СОБЫТИЙ
 // ============================================
-
-// Поиск продуктов
 foodSearch.addEventListener('input', (e) => {
   selectedProduct = null;
   updateCalcPreview();
@@ -322,27 +403,37 @@ foodSearch.addEventListener('focus', (e) => {
 });
 
 foodSearch.addEventListener('blur', () => {
-  // Небольшая задержка, чтобы успел сработать клик по подсказке
   setTimeout(() => foodSuggest.style.display = 'none', 200);
 });
 
 foodGrams.addEventListener('input', updateCalcPreview);
 
-// Кнопки
 addFoodBtn.addEventListener('click', addFood);
 addActBtn.addEventListener('click', addActivity);
+closeDayBtn.addEventListener('click', closeDay);
 
 resetBtn.addEventListener('click', () => {
-  if (confirm('Сбросить все записи за сегодня?')) {
+  if (confirm('Сбросить все записи за сегодня? История не пострадает.')) {
     foods = [];
     activities = [];
     render();
   }
 });
 
+// Переключатель Неделя / Месяц
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    chartPeriod = parseInt(btn.dataset.period);
+    renderHistory();
+  });
+});
+
 // ============================================
-// 10. СТАРТ
+// 12. СТАРТ
 // ============================================
 showTodayDate();
-load();   // загружаем сохранённые данные
-render(); // отрисовываем экран
+load();
+loadHistory();
+render();

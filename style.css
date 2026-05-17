@@ -3,7 +3,6 @@
    Мобильный фитнес-трекер калорий
    ============================================ */
 
-/* Сброс и базовые настройки */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -20,7 +19,6 @@ body {
   justify-content: center;
 }
 
-/* Контейнер приложения — мобильная ширина */
 .app {
   width: 100%;
   max-width: 420px;
@@ -76,7 +74,6 @@ body {
   color: #888780;
 }
 
-/* Прогресс-бар */
 .progress {
   background: #ececec;
   height: 8px;
@@ -92,7 +89,6 @@ body {
   transition: width 0.3s, background 0.3s;
 }
 
-/* Карточки статистики */
 .stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -213,7 +209,7 @@ body {
   color: #888780;
 }
 
-/* Поля ввода и кнопки */
+/* Поля ввода */
 .row {
   display: flex;
   gap: 6px;
@@ -262,6 +258,7 @@ select {
   font-weight: 500;
 }
 
+/* Кнопки */
 .btn-primary {
   width: 100%;
   padding: 9px 12px;
@@ -284,6 +281,30 @@ select {
   transform: scale(0.98);
 }
 
+.btn-close-day {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #0f6e56;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: 8px;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-close-day:hover:not(:disabled) {
+  background: #04342c;
+}
+
+.btn-close-day:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .btn-reset {
   width: 100%;
   padding: 8px;
@@ -301,7 +322,7 @@ select {
   color: #5f5e5a;
 }
 
-/* Списки добавленного */
+/* Списки */
 .list {
   margin-top: 10px;
   font-size: 13px;
@@ -345,4 +366,114 @@ select {
 
 .btn-remove:hover {
   color: #791f1f;
+}
+
+/* ============================================
+   ИСТОРИЯ — график-столбики
+   ============================================ */
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.history-header .block-title {
+  margin-bottom: 0;
+}
+
+.period-switch {
+  display: flex;
+  gap: 4px;
+  background: #f5f5f0;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.period-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: #5f5e5a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.period-btn.active {
+  background: #ffffff;
+  color: #2c2c2a;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* График */
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 140px;
+  padding: 20px 0 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid #ececec;
+  margin-bottom: 8px;
+}
+
+.chart-bar {
+  flex: 1;
+  min-width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.chart-bar-fill {
+  width: 100%;
+  background: #1d9e75;
+  border-radius: 3px 3px 0 0;
+  transition: opacity 0.15s;
+  min-height: 2px;
+}
+
+.chart-bar:hover .chart-bar-fill {
+  opacity: 0.8;
+}
+
+.chart-bar-fill.over { background: #e24b4a; }
+.chart-bar-fill.near { background: #ef9f27; }
+.chart-bar-fill.empty { background: #d3d1c7; }
+
+.chart-bar-value {
+  position: absolute;
+  top: -18px;
+  font-size: 10px;
+  color: #5f5e5a;
+  white-space: nowrap;
+}
+
+.chart-bar-label {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #888780;
+  white-space: nowrap;
+}
+
+.history-empty {
+  font-size: 12px;
+  color: #888780;
+  text-align: center;
+  padding: 20px 0;
+  display: none;
+}
+
+.history-empty.show {
+  display: block;
+}
+
+.chart.hidden {
+  display: none;
 }
